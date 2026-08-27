@@ -10,14 +10,20 @@
   html,
   body,
   #root {
-    height: 100%;
     width: 100%;
     margin: 0;
     background: #040203;
   }
 
+  html {
+    /* The stage is fixed; the sections scroll past it. Snapping is what makes
+       "arriving at a section" a discrete event rather than a gradient. */
+    scroll-behavior: smooth;
+  }
+
   body {
-    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     text-rendering: optimizeLegibility;
@@ -28,16 +34,10 @@
     touch-action: none;
   }
 
-  /* The hand's state, spelled out in the cursor. */
-  main[data-mode='idle'] {
-    cursor: grab;
-  }
-  main[data-mode='hold'],
-  main[data-mode='trace'] {
-    cursor: grabbing;
-  }
-  main[data-mode='scrub'] {
-    cursor: ew-resize;
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 
   ::selection {

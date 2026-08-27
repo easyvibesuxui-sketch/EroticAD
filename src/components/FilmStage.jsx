@@ -1,18 +1,16 @@
 import { Canvas } from '@react-three/fiber'
-import { AdaptiveDpr, AdaptiveEvents } from '@react-three/drei'
+import { AdaptiveDpr } from '@react-three/drei'
 
-import SteamPlane from './SteamPlane.jsx'
+import FilmPlane from './FilmPlane.jsx'
 
 /**
- * The fragment shader is expensive by design — 50+ texture taps and several
- * fbm fields per pixel — so the canvas is capped and allowed to drop its pixel
- * ratio under load rather than dropping frames. A stuttering tease is not a
- * tease.
+ * The stage never moves. Ten sections scroll past it; it just shows the right
+ * two seconds of film.
  */
-export default function Stage(props) {
+export default function FilmStage(props) {
   return (
     <Canvas
-      className="fixed inset-0 z-10"
+      className="!fixed inset-0 z-10"
       orthographic
       camera={{ position: [0, 0, 5], zoom: 1 }}
       dpr={[1, 1.75]}
@@ -27,9 +25,8 @@ export default function Stage(props) {
       }}
     >
       <color attach="background" args={['#040203']} />
-      <SteamPlane {...props} />
+      <FilmPlane {...props} />
       <AdaptiveDpr pixelated={false} />
-      <AdaptiveEvents />
     </Canvas>
   )
 }

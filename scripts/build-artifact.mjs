@@ -27,7 +27,7 @@ const styles = readFileSync(join(DIST, css), 'utf8')
 // A literal </script> anywhere in the bundle would close the tag early.
 const safeScript = script.replace(/<\/script/gi, '<\\/script')
 
-const html = `<title>Behind the Steam</title>
+const html = `<title>Frame by Hand</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
@@ -43,16 +43,18 @@ ${styles}
    than inheriting the viewer's theme. */
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
+  /* Vertical scroll is the transport here — the app toggles it on the root
+     itself once the gate is answered. Only the horizontal axis is clamped. */
+  overflow-x: hidden;
   background: #040203;
   color: #e8c4bd;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 #root {
-  height: 100%;
+  min-height: 100%;
   width: 100%;
 }
 </style>

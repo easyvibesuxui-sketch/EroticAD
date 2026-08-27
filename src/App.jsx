@@ -1,46 +1,65 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
 
 import AgeGate from './components/AgeGate.jsx'
-import Overlay from './components/Overlay.jsx'
-import ScrubRail from './components/ScrubRail.jsx'
-import Stage from './components/Stage.jsx'
-import TraceLayer from './components/TraceLayer.jsx'
+import FilmStage from './components/FilmStage.jsx'
+import ScrollTrack from './components/ScrollTrack.jsx'
+import SectionIndicator from './components/SectionIndicator.jsx'
+import SectionRail from './components/SectionRail.jsx'
 import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
+import { Playhead } from './lib/Playhead.js'
+import { SECTIONS } from './lib/sections.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
-import { useGestures } from './hooks/useGestures.js'
+import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
-
-/** How long the glass has to stay clear before the shop reveals itself. */
-const CTA_DELAY_MS = 3000
-
-/**
- * Once it has been earned, the call to action outlives the hold. Letting it
- * vanish on release would make it unclickable: you have to let go of the glass
- * to reach for it.
- */
-const CTA_GRACE_MS = 6000
+import { useSectionScroll } from './hooks/useSectionScroll.js'
 
 export default function App() {
   const [phase, setPhase] = useState('gate') // gate -> booting -> live
-  const [videoEl, setVideoEl] = useState(null)
-  const [standIn, setStandIn] = useState(null)
-  const [ctaVisible, setCtaVisible] = useState(false)
+  const [source, setSource] = useState(null) // { playhead, standIn, texture }
+  const [transport, setTransport] = useState('idle') // idle | playing | armed
+  const [committedIds, setCommittedIds] = useState(() => new Set())
 
   const audioRef = useRef(null)
-  const ctaTimer = useRef(0)
-  const ctaVisibleRef = useRef(false)
-  const signalsRef = useRef({ reveal: 0, steam: 1, pulse: 0, holding: false, shuttle: 0 })
-  /** Film aspect, published by the render loop so the marks can be placed. */
   const aspectRef = useRef(16 / 9)
-  /** How far the shuttle has travelled this gesture. */
-  const scrubRef = useRef({ seconds: 0, pixels: 0 })
-  /** The last mark to open, for the shader's bloom. */
   const sparkRef = useRef({ u: 0.5, v: 0.5, at: 0 })
+  const signalsRef = useRef({ progress: 0, phase: 'idle', section: 0, time: 0 })
 
   const reducedMotion = useReducedMotion()
-  const { mode, gestureRef, releaseTrace, endScrub } = useGestures({ enabled: phase === 'live' })
+  const { active, activeRef } = useSectionScroll(SECTIONS.length)
+  const section = SECTIONS[active] ?? SECTIONS[0]
+
+  const handleCommit = useCallback(() => {
+    sparkRef.current = { u: section.u, v: section.v, at: performance.now() }
+    audioRef.current?.chime()
+    if (navigator.vibrate) navigator.vibrate(18)
+    setCommittedIds((prev) => {
+      if (prev.has(section.id)) return prev
+      const next = new Set(prev)
+      next.add(section.id)
+      return next
+    })
+  }, [section])
+
+  const drag = useDirectionalDrag({
+    dir: section.dir,
+    length: section.length,
+    enabled: transport === 'armed',
+    onCommit: handleCommit,
+  })
+
+  // A new section is a new action: whatever was wound on the last one goes
+  // back to zero, or the next mark would open already half-used. The transport
+  // is disarmed here rather than waiting for the render loop to notice — for
+  // the frame in between, the old section's mark would still be live over the
+  // new section's footage.
+  const { reset } = drag
+  useEffect(() => {
+    reset()
+    setTransport('playing')
+  }, [active, reset])
 
   const handleEnter = useCallback(async () => {
     if (phase !== 'gate') return
@@ -58,87 +77,95 @@ export default function App() {
       loadAudio(MEDIA.breath),
     ])
 
-    // No footage anywhere? Run the whole mechanic against the stand-in rather
-    // than showing a dead screen.
-    setVideoEl(video)
-    setStandIn(video ? null : createStandIn())
+    // No footage? Run the whole architecture against a virtual playhead and
+    // the procedural stand-in, rather than showing a dead screen.
+    const standIn = video ? null : createStandIn()
+    const playhead = new Playhead(video)
+    const texture = video ? new THREE.VideoTexture(video) : new THREE.CanvasTexture(standIn.canvas)
+    texture.minFilter = THREE.LinearFilter
+    texture.magFilter = THREE.LinearFilter
+    texture.generateMipmaps = false
+    texture.wrapS = THREE.ClampToEdgeWrapping
+    texture.wrapT = THREE.ClampToEdgeWrapping
+    texture.colorSpace = THREE.SRGBColorSpace
 
-    // If the breath layer resolved to the same file as the track, it adds
-    // nothing — drop it and let the synthesised breath do the work.
+    setSource({ playhead, standIn, texture })
+
     const breath =
       breathTrack && music && breathTrack.currentSrc === music.currentSrc ? null : breathTrack
-
     await engine.start({ musicEl: music, breathEl: breath })
     setPhase('live')
   }, [phase])
 
-  const showCta = useCallback((visible) => {
-    ctaVisibleRef.current = visible
-    setCtaVisible(visible)
-  }, [])
+  // The page does not scroll until the gate is answered.
+  useEffect(() => {
+    const root = document.documentElement
+    const live = phase === 'live'
+    root.style.overflowY = live ? 'auto' : 'hidden'
+    root.style.scrollSnapType = live && !reducedMotion ? 'y mandatory' : ''
+    return () => {
+      root.style.overflowY = ''
+      root.style.scrollSnapType = ''
+    }
+  }, [phase, reducedMotion])
 
-  const handleTraceOpen = useCallback(() => {
-    audioRef.current?.chime()
-  }, [])
+  useEffect(() => () => audioRef.current?.dispose(), [])
 
-  const handleClearChange = useCallback(
-    (clear) => {
-      window.clearTimeout(ctaTimer.current)
-      if (clear) {
-        ctaTimer.current = window.setTimeout(() => showCta(true), CTA_DELAY_MS)
-      } else if (ctaVisibleRef.current) {
-        ctaTimer.current = window.setTimeout(() => showCta(false), CTA_GRACE_MS)
-      } else {
-        showCta(false)
-      }
-    },
-    [showCta],
-  )
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(ctaTimer.current)
-      audioRef.current?.dispose()
-    },
-    [],
-  )
+  const stage = useMemo(() => {
+    if (!source) return null
+    return (
+      <FilmStage
+        playhead={source.playhead}
+        standIn={source.standIn}
+        texture={source.texture}
+        activeRef={activeRef}
+        progressRef={drag.progressRef}
+        aspectRef={aspectRef}
+        sparkRef={sparkRef}
+        audioRef={audioRef}
+        signalsRef={signalsRef}
+        onPhaseChange={setTransport}
+        reducedMotion={reducedMotion}
+      />
+    )
+  }, [source, activeRef, drag.progressRef, reducedMotion])
 
   const live = phase === 'live'
 
   return (
-    <main className="relative h-full w-full bg-void" data-mode={live ? mode : 'gate'}>
-      {(videoEl || standIn) && (
-        <Stage
-          videoEl={videoEl}
-          standIn={standIn}
-          gestureRef={gestureRef}
-          audioRef={audioRef}
-          signalsRef={signalsRef}
-          aspectRef={aspectRef}
-          scrubRef={scrubRef}
-          sparkRef={sparkRef}
-          endScrub={endScrub}
-          onClearChange={handleClearChange}
-          reducedMotion={reducedMotion}
-        />
-      )}
+    <main className="relative w-full bg-void" data-phase={phase} data-transport={transport} data-section={active}>
+      {stage}
 
       {live && (
         <>
-          <TraceLayer
-            signalsRef={signalsRef}
-            gestureRef={gestureRef}
+          <div className="pointer-events-none fixed inset-0 z-20 vignette" />
+          <div className="pointer-events-none fixed inset-0 z-20 grain opacity-[0.09]" />
+
+          <header className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-6 sm:px-10 sm:py-8">
+            <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest3 text-blush/70">
+              Eroticad
+            </span>
+            <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-crimson-400/70">
+              18+
+            </span>
+          </header>
+
+          <SectionIndicator
+            section={section}
             aspectRef={aspectRef}
-            sparkRef={sparkRef}
-            onOpen={handleTraceOpen}
-            releaseTrace={releaseTrace}
+            armed={transport === 'armed'}
+            progressRef={drag.progressRef}
+            dragging={drag.dragging}
+            committed={drag.committed}
+            handlers={drag.handlers}
           />
-          <ScrubRail signalsRef={signalsRef} gestureRef={gestureRef} scrubRef={scrubRef} />
-          <Overlay signalsRef={signalsRef} ctaVisible={ctaVisible} />
+
+          <SectionRail active={active} committedIds={committedIds} />
+          <ScrollTrack active={active} phase={transport} committedIds={committedIds} />
         </>
       )}
 
-      {phase !== 'live' && <AgeGate onEnter={handleEnter} booting={phase === 'booting'} />}
+      {!live && <AgeGate onEnter={handleEnter} booting={phase === 'booting'} />}
     </main>
   )
 }
