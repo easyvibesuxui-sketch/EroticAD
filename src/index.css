@@ -28,6 +28,18 @@
     touch-action: none;
   }
 
+  /* The hand's state, spelled out in the cursor. */
+  main[data-mode='idle'] {
+    cursor: grab;
+  }
+  main[data-mode='hold'],
+  main[data-mode='trace'] {
+    cursor: grabbing;
+  }
+  main[data-mode='scrub'] {
+    cursor: ew-resize;
+  }
+
   ::selection {
     background: #5c0a1e;
     color: #f0c2ca;

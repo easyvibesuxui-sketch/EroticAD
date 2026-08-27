@@ -9,6 +9,7 @@ export default function Overlay({ signalsRef, ctaVisible }) {
   const hintRef = useRef(null)
   const meterRef = useRef(null)
   const chromeRef = useRef(null)
+  const hint2Ref = useRef(null)
   const holdMarkRef = useRef(null)
 
   useEffect(() => {
@@ -21,6 +22,11 @@ export default function Overlay({ signalsRef, ctaVisible }) {
         // The instruction excuses itself the moment it is obeyed.
         hintRef.current.style.opacity = String(Math.pow(fogged, 1.4) * 0.9)
         hintRef.current.style.letterSpacing = `${0.42 + s.reveal * 0.25}em`
+      }
+      if (hint2Ref.current) {
+        // The second lesson only arrives once the first one has been learned.
+        const t = Math.min(1, Math.max(0, (s.reveal - 0.5) / 0.42))
+        hint2Ref.current.style.opacity = String(t * t * (3 - 2 * t) * 0.75)
       }
       if (meterRef.current) {
         meterRef.current.style.transform = `scaleX(${s.reveal})`
@@ -75,6 +81,14 @@ export default function Overlay({ signalsRef, ctaVisible }) {
           Touch and hold to reveal
         </p>
 
+        <p
+          ref={hint2Ref}
+          className="-mt-2 font-sans text-[0.55rem] font-light uppercase tracking-widest2 text-gold-400/80"
+          style={{ opacity: 0 }}
+        >
+          Drag to rewind · follow the gold
+        </p>
+
         <div className="h-px w-40 overflow-hidden bg-blush/10 sm:w-56">
           <span
             ref={meterRef}
@@ -86,7 +100,7 @@ export default function Overlay({ signalsRef, ctaVisible }) {
 
       {/* the climax: only after the glass has stayed clear */}
       <div
-        className="materialize absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-7 px-6"
+        className="materialize absolute inset-x-0 bottom-28 flex flex-col items-center gap-6 px-6 sm:bottom-36 sm:gap-7"
         data-visible={ctaVisible}
         aria-hidden={!ctaVisible}
       >

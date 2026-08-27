@@ -120,6 +120,7 @@ export class AudioEngine {
     if (this.usingSynthBreath) this.#buildSynthBreath()
 
     this.#buildHeart()
+    this.#buildShuttle()
 
     // Fade the room in rather than slamming the door open.
     master.gain.setValueAtTime(0.0001, ctx.currentTime)
@@ -224,6 +225,64 @@ export class AudioEngine {
     this.voices.push(src)
   }
 
+  /**
+   * Tape. Rewinding and running forward are audible: filtered noise whose
+   * pitch and brightness follow the shuttle speed, over a ducked bed.
+   */
+  #buildShuttle() {
+    const { ctx, master } = this
+    if (!this.noise) this.noise = this.#noiseBuffer()
+
+    const src = ctx.createBufferSource()
+    src.buffer = this.noise
+    src.loop = true
+
+    const band = ctx.createBiquadFilter()
+    band.type = 'bandpass'
+    band.frequency.value = 700
+    band.Q.value = 1.3
+
+    const gain = ctx.createGain()
+    gain.gain.value = 0.0001
+
+    src.connect(band).connect(gain).connect(master)
+    src.start()
+
+    this.shuttleSrc = src
+    this.shuttleBand = band
+    this.shuttleGain = gain
+    this.voices.push(src)
+  }
+
+  /**
+   * A mark opening. Deliberately outside the low-pass — this one is allowed
+   * to cut through whatever the glass is doing.
+   */
+  chime(strength = 1) {
+    if (!this.ready || !this.ctx) return
+    const { ctx, master } = this
+    const now = ctx.currentTime
+
+    for (const [freq, level, delay] of [
+      [1046.5, 0.05, 0],
+      [1567.98, 0.028, 0.012],
+      [2093, 0.014, 0.03],
+    ]) {
+      const osc = ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, now + delay)
+
+      const env = ctx.createGain()
+      env.gain.setValueAtTime(0.0001, now + delay)
+      env.gain.exponentialRampToValueAtTime(level * strength, now + delay + 0.008)
+      env.gain.exponentialRampToValueAtTime(0.0001, now + delay + 1.4)
+
+      osc.connect(env).connect(master)
+      osc.start(now + delay)
+      osc.stop(now + delay + 1.5)
+    }
+  }
+
   /** The pulse you hear when your ears are covered. */
   #buildHeart() {
     const { ctx, master } = this
@@ -282,8 +341,9 @@ export class AudioEngine {
    * @param {number} reveal  eased reveal, 0 fogged .. 1 clear
    * @param {number} dt      seconds since the last frame
    * @param {number} breathV slow respiration, 0..1
+   * @param {number} shuttle  -1..1 rewind/forward speed
    */
-  update(reveal, dt, breathV) {
+  update(reveal, dt, breathV, shuttle = 0) {
     if (!this.ready || !this.ctx) return
     const { ctx } = this
     const now = ctx.currentTime
@@ -304,6 +364,15 @@ export class AudioEngine {
       this.breathShape.gain.value = env
       this.breathBand.frequency.value = lerp(700, 1250, breathV)
     }
+
+    // Tape over a ducked bed.
+    const mag = Math.min(1, Math.abs(shuttle))
+    if (this.shuttleGain) {
+      this.shuttleGain.gain.value = lerp(this.shuttleGain.gain.value, mag * 0.11, Math.min(1, dt * 9))
+      this.shuttleBand.frequency.value = lerp(520, 2700, mag)
+      this.shuttleSrc.playbackRate.value = 0.6 + mag * 1.7
+    }
+    this.bedGain.gain.value = lerp(this.bedGain.gain.value, 0.9 - mag * 0.45, Math.min(1, dt * 6))
 
     // One clock: the bed follows the pulse.
     const bpm = bpmFor(reveal)

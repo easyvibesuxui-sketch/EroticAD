@@ -21,6 +21,9 @@ uniform float uPulse;        // heartbeat transient, shared with the audio engin
 uniform float uBreath;       // slow respiration, 0..1
 uniform vec2  uPointer;      // where the hand rests, in plane uv
 uniform float uWipe;         // how much of the hand's warmth has soaked in
+uniform float uScrub;        // -1 rewinding .. 0 still .. 1 running forward
+uniform float uSpark;        // 1 the instant a gold mark opens, decaying to 0
+uniform vec2  uSparkPos;     // where it opened, in plane uv
 
 varying vec2 vUv;
 
@@ -160,6 +163,23 @@ vec3 mistBlur(vec2 uv, float radius, float jitter) {
   return acc / wsum;
 }
 
+/* ---------------------------------------------------------------- shuttle
+ * Rewinding and running forward smear the frame along its own direction of
+ * travel — the trail sits behind the motion, never symmetrically around it.
+ */
+vec3 shuttle(vec2 uv, float amount) {
+  vec3 acc = vec3(0.0);
+  float w = 0.0;
+  for (int i = 0; i < 8; i++) {
+    float f = float(i) / 7.0;
+    vec2 o = vec2(-amount * 0.075 * f, 0.0) * uCoverScale;
+    float k = 1.0 - f * 0.75;
+    acc += texture2D(uTex, clamp(uv + o, vec2(0.0015), vec2(0.9985))).rgb * k;
+    w += k;
+  }
+  return acc / w;
+}
+
 void main() {
   vec2 screenUv = vUv;                                   // 0..1 across the pane
   vec2 aspectUv = vec2(screenUv.x * uPlaneAspect, screenUv.y);
@@ -204,6 +224,9 @@ void main() {
   vec3 wide = mistBlur(uv, radius, jitter);
   vec3 tight = mistBlur(uv, radius * 0.34, jitter + 1.7);
   vec3 sharp = texture2D(uTex, clamp(uv, vec2(0.0015), vec2(0.9985))).rgb;
+
+  float shuttleMag = abs(uScrub);
+  sharp = mix(sharp, shuttle(uv, uScrub), smoothstep(0.015, 0.40, shuttleMag));
 
   // Below ~0.02 steam the pane is dry and the frame is left completely alone.
   vec3 col = mix(sharp, mix(tight, wide, 0.62), smoothstep(0.0, 0.06, steam));
@@ -251,7 +274,7 @@ void main() {
 
   // Sampled unconditionally: a texture fetch inside non-uniform control flow
   // has undefined derivatives, and this pays for itself in stability.
-  float ca = 0.0018 * lens;
+  float ca = (0.0018 + 0.0055 * shuttleMag) * lens;
   vec2 caDir = normalize(screenUv - vec2(0.5) + 1e-5) * ca * uCoverScale;
   vec3 fringe = vec3(
     texture2D(uTex, clamp(uv + caDir, vec2(0.0015), vec2(0.9985))).r,
@@ -261,6 +284,27 @@ void main() {
   col = mix(col, fringe, lens);
   // A whisper of warmth stays in the grade even at full reveal.
   col = mix(col, col * vec3(1.03, 0.99, 0.98), 0.6 * lens);
+
+  /* --- shuttle artefacts -------------------------------------------------
+   * Tape, not glitch: one soft bar sweeping in the direction of travel, and
+   * just enough desaturation to read as machinery rather than as the film.
+   */
+  float sweep = fract(screenUv.y * 2.0 - uTime * (0.5 + shuttleMag * 3.2) * sign(uScrub + 1e-5));
+  float tape = smoothstep(0.90, 1.0, sweep) * shuttleMag;
+  col = mix(col, vec3(dot(col, vec3(0.3333))), shuttleMag * 0.22);
+  col += vec3(0.15, 0.12, 0.11) * tape;
+
+  /* --- a mark opening ----------------------------------------------------
+   * Gold, and gone in under a second: a bloom where the hand finished the
+   * gesture, and a ring travelling out from it.
+   */
+  vec2 sparkAspect = vec2(uSparkPos.x * uPlaneAspect, uSparkPos.y);
+  float sd = distance(aspectUv, sparkAspect);
+  float bloom = uSpark * exp(-sd * 15.0);
+  float ringR = (1.0 - uSpark) * 0.22;
+  float ring = uSpark * exp(-pow((sd - ringR) * 26.0, 2.0));
+  col += vec3(0.86, 0.63, 0.27) * bloom * 0.5;
+  col += vec3(0.92, 0.72, 0.36) * ring * 0.32;
 
   /* --- finish ------------------------------------------------------------ */
 

@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import AgeGate from './components/AgeGate.jsx'
 import Overlay from './components/Overlay.jsx'
+import ScrubRail from './components/ScrubRail.jsx'
 import Stage from './components/Stage.jsx'
+import TraceLayer from './components/TraceLayer.jsx'
 import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
-import { useHold } from './hooks/useHold.js'
+import { useGestures } from './hooks/useGestures.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
 
 /** How long the glass has to stay clear before the shop reveals itself. */
@@ -29,10 +31,16 @@ export default function App() {
   const audioRef = useRef(null)
   const ctaTimer = useRef(0)
   const ctaVisibleRef = useRef(false)
-  const signalsRef = useRef({ reveal: 0, steam: 1, pulse: 0, holding: false })
+  const signalsRef = useRef({ reveal: 0, steam: 1, pulse: 0, holding: false, shuttle: 0 })
+  /** Film aspect, published by the render loop so the marks can be placed. */
+  const aspectRef = useRef(16 / 9)
+  /** How far the shuttle has travelled this gesture. */
+  const scrubRef = useRef({ seconds: 0, pixels: 0 })
+  /** The last mark to open, for the shader's bloom. */
+  const sparkRef = useRef({ u: 0.5, v: 0.5, at: 0 })
 
   const reducedMotion = useReducedMotion()
-  const { holdRef, pointerRef } = useHold({ enabled: phase === 'live' })
+  const { mode, gestureRef, releaseTrace, endScrub } = useGestures({ enabled: phase === 'live' })
 
   const handleEnter = useCallback(async () => {
     if (phase !== 'gate') return
@@ -69,6 +77,10 @@ export default function App() {
     setCtaVisible(visible)
   }, [])
 
+  const handleTraceOpen = useCallback(() => {
+    audioRef.current?.chime()
+  }, [])
+
   const handleClearChange = useCallback(
     (clear) => {
       window.clearTimeout(ctaTimer.current)
@@ -94,21 +106,37 @@ export default function App() {
   const live = phase === 'live'
 
   return (
-    <main className="relative h-full w-full bg-void">
+    <main className="relative h-full w-full bg-void" data-mode={live ? mode : 'gate'}>
       {(videoEl || standIn) && (
         <Stage
           videoEl={videoEl}
           standIn={standIn}
-          holdRef={holdRef}
-          pointerRef={pointerRef}
+          gestureRef={gestureRef}
           audioRef={audioRef}
           signalsRef={signalsRef}
+          aspectRef={aspectRef}
+          scrubRef={scrubRef}
+          sparkRef={sparkRef}
+          endScrub={endScrub}
           onClearChange={handleClearChange}
           reducedMotion={reducedMotion}
         />
       )}
 
-      {live && <Overlay signalsRef={signalsRef} ctaVisible={ctaVisible} />}
+      {live && (
+        <>
+          <TraceLayer
+            signalsRef={signalsRef}
+            gestureRef={gestureRef}
+            aspectRef={aspectRef}
+            sparkRef={sparkRef}
+            onOpen={handleTraceOpen}
+            releaseTrace={releaseTrace}
+          />
+          <ScrubRail signalsRef={signalsRef} gestureRef={gestureRef} scrubRef={scrubRef} />
+          <Overlay signalsRef={signalsRef} ctaVisible={ctaVisible} />
+        </>
+      )}
 
       {phase !== 'live' && <AgeGate onEnter={handleEnter} booting={phase === 'booting'} />}
     </main>

@@ -33,6 +33,62 @@ Press and hold works from a mouse, a finger, or the space bar.
 
 ---
 
+## The gold layer
+
+Once the glass is clear, marks appear on the film. They are the whole
+vocabulary of the piece: **a ring, a chevron, and a dashed path saying where
+the hand goes next.**
+
+| Mark      | Looks like                                            | Gesture                                      |
+| --------- | ----------------------------------------------------- | -------------------------------------------- |
+| **Pull**  | A ring with a chevron, a dashed guide, a terminus dot. | Drag the ring along the dashes to the end.    |
+| **Dwell** | A bare dot inside a dashed circle.                     | Rest on it. The circle closes in 1.1 seconds. |
+| **Shuttle** | A dashed rail under the hand, ring handle, `− 3.4s`. | Sweep sideways. Left rewinds, right runs on.  |
+
+Opening a mark blooms gold at that point in the shader, sounds a chime *outside*
+the low-pass, buzzes the phone, and names the piece. It stays open five seconds,
+then closes so the frame is clean again.
+
+Marks are authored in **film coordinates** (`src/lib/traces.js`) and mapped
+through the same cover-fit transform the shader uses, so a mark placed on a
+clasp stays on that clasp at any window shape. Re-author them against the real
+cut — they are the only content-specific thing in the project.
+
+### One hand, four meanings
+
+Everything comes out of a single pointer stream, because the marks only exist
+while the glass is clear, and the glass is only clear while the pointer is
+down. Anything needing a second press would be unreachable — you would have to
+let go, and letting go closes everything it was there to open.
+
+```
+idle ──press──▶ hold ──sideways travel──▶ scrub ──hand stops (450ms)──▶ hold
+                 │                          │
+                 └──── along a mark's dashes ┴──▶ trace ──opens/abandoned──▶ hold
+```
+
+The arbitration rules are the part worth knowing:
+
+- **A mark outranks the shuttle.** Arriving at one ends any sweep in progress,
+  so the film is still by the time the pull starts. This is also what stops a
+  reach across the frame from rewinding: the reach ends *at* a mark.
+- **Scrub engagement is not speed-gated.** A velocity threshold behaves
+  differently on every frame rate, and a shuttle that only works on fast
+  hardware is worse than one that occasionally starts early.
+- **Pull distance is measured from where the hand reached the mark**, not from
+  the press — by then the hand has been resting somewhere else for a second or
+  two, and that journey is not part of the pull. Forward motion accumulates;
+  only wandering backwards or sideways re-anchors it.
+- **An open mark never takes the hand again**, or you could not leave what you
+  just opened without lifting off the glass.
+- **Ending a shuttle belongs to the render loop.** A hand holding still sends
+  no events at all, so a mode that could only be left by moving would never be
+  left.
+
+Arrow keys shuttle; space or enter holds.
+
+---
+
 ## Architecture
 
 ```
@@ -42,18 +98,23 @@ src/
     AgeGate.jsx            nothing exists until someone says yes
     Stage.jsx              the R3F canvas: orthographic, flat, adaptive DPR
     SteamPlane.jsx         the single frame loop everything else reads from
+    Trace.jsx              one gold mark: ring, chevron, dashed path, label
+    TraceLayer.jsx         places the marks and drives arming, pulls and dwells
+    ScrubRail.jsx          the rewind/forward rail, handle and readout
     Overlay.jsx            interface; paints from the same signals, never re-renders per frame
   shaders/
     steam.vert.glsl        the pane, breathing
     steam.frag.glsl        the censor
   lib/
     pulse.js               heartbeat, respiration, and the reveal curve
+    traces.js              the marks: film coordinates, direction, copy
+    layout.js              cover-fit mapping shared by the shader and the marks
     AudioEngine.js         the filter graph, and a synth bed when there is no track
     media.js               source candidates
     loadMedia.js           first-that-decodes loader
     standin.js             procedural footage for when nothing loads
   hooks/
-    useHold.js             press-and-hold across pointer, touch and keyboard
+    useGestures.js         one pointer stream -> hold / scrub / trace / idle
     useReducedMotion.js
 ```
 
@@ -101,6 +162,13 @@ leak while the pane is fogged.
 **5. Finish.** Vignette, heartbeat exposure, and grain that thickens with the
 steam.
 
+Two more uniforms belong to the gold layer. `uScrub` (−1..1) smears the frame
+along its own direction of travel — the trail sits *behind* the motion, never
+symmetrically around it — widens the chromatic split, desaturates a touch, and
+sweeps one soft tape bar through the frame: machinery, not glitch. `uSpark`
+blooms gold at `uSparkPos` for 0.9s when a mark opens, with a ring travelling
+out from it.
+
 ### Breathing
 
 `uSteam` is not just `1 - reveal`. It carries a heartbeat transient and a slow
@@ -131,6 +199,11 @@ huge delta cannot snap the glass open on its first frame back.
 ---
 
 ## The audio
+
+Rewinding is audible: filtered noise whose pitch and brightness follow the
+shuttle speed, over a bed ducked by 50%. A mark opening rings a three-partial
+chime routed *around* the low-pass — the one sound allowed to cut through
+whatever the glass is doing.
 
 One `BiquadFilterNode` is the whole idea: the bed lives behind it, and the
 reveal opens it from 180 Hz to 18 kHz on an exponential curve while the
@@ -174,5 +247,15 @@ stay up; ship your own from `public/media/`.
   beforehand, not even fogged. Every way a hold can end — pointer up, pointer
   cancel, a finger dragged off the glass, tab blur, window hidden — closes the
   steam, so losing focus can never leave the frame uncovered.
-- **Accessibility.** Space or Enter holds the glass. `prefers-reduced-motion`
-  damps the breathing and shortens the interface transitions.
+- **Accessibility.** Space or Enter holds the glass, arrow keys shuttle the
+  film. `prefers-reduced-motion` damps the breathing and shortens the interface
+  transitions.
+- **Frame-rate honesty.** Every timed gesture (the reveal, the dwell, the
+  shuttle fuse, every interface fade) is smoothed over elapsed time rather than
+  over frames, and the delta clamps are deliberately loose. A hold that takes
+  twice as long on a slow phone is a worse bug than a single fast frame.
+- **No per-frame React.** The marks, the rail and the interface are driven
+  straight into the DOM from rAF loops reading the same signals object the
+  shader writes. React hears about four transitions in total: the gate, the
+  clear-hold, a mark opening, and the gesture mode (which is published as
+  `data-mode` on `<main>`, and drives the cursor).
