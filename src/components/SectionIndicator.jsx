@@ -95,8 +95,17 @@ export default function SectionIndicator({
           transform: `translate(-50%, -50%) translate(${(dx * section.length) / 2}px, ${
             (dy * section.length) / 2
           }px)`,
-          // The one region on the page that takes the touch instead of scrolling.
-          touchAction: 'none',
+          /*
+           * Only ever claim the axis the action actually needs.
+           *
+           * A horizontal action leaves `pan-y` alone, so the page scrolls
+           * through the mark at all times. A vertical one has to take the
+           * whole gesture — but only until it is done: once the action has
+           * been performed the surface hands the axis back, because the next
+           * thing anyone wants to do is scroll on, and a spent control has no
+           * business swallowing that.
+           */
+          touchAction: committed ? 'auto' : horizontal ? 'pan-y' : 'none',
           opacity: 0,
         }}
       >

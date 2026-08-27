@@ -27,6 +27,7 @@ export class AudioEngine {
     this.usingSynthBed = true
     this.usingSynthBreath = true
 
+    this.muted = false
     this.beat = 0
     this.lastBeatIndex = -1
     this.elements = []
@@ -122,9 +123,10 @@ export class AudioEngine {
     this.#buildHeart()
     this.#buildShuttle()
 
-    // Fade the room in rather than slamming the door open.
+    // Fade the room in rather than slamming the door open — unless the sound
+    // was switched off while it was still loading.
     master.gain.setValueAtTime(0.0001, ctx.currentTime)
-    master.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime + 2.6)
+    if (!this.muted) master.gain.exponentialRampToValueAtTime(0.85, ctx.currentTime + 2.6)
 
     this.ready = true
   }
@@ -395,6 +397,21 @@ export class AudioEngine {
         }
       }
     }
+  }
+
+  /**
+   * Silence, without tearing the graph down — the film keeps its timing and
+   * the room comes back exactly as it was. Ramped rather than switched: a gain
+   * cut to zero in one sample is an audible click.
+   */
+  setMuted(muted) {
+    this.muted = muted
+    if (!this.ready || !this.ctx || !this.master) return
+    const now = this.ctx.currentTime
+    const g = this.master.gain
+    g.cancelScheduledValues(now)
+    g.setValueAtTime(Math.max(g.value, 0.0001), now)
+    g.exponentialRampToValueAtTime(muted ? 0.0001 : 0.85, now + 0.4)
   }
 
   dispose() {

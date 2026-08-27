@@ -25,7 +25,11 @@ const Mark = forwardRef(function Mark({ dir = 'right', length = 96 }, ref) {
   const pathRef = useRef(null)
   const trailRef = useRef(null)
 
-  const reach = RING_R + GAP + length + TERMINUS_R + PAD
+  // `length` is how far the ring's *centre* travels, which is also what the
+  // drag maps onto — so the terminus sits at exactly that distance and the
+  // ring finishes centred on it. Measuring the dashes instead would leave the
+  // ring a radius-and-a-gap short of the dot it is being dragged to.
+  const reach = length + RING_R + PAD
   const size = reach * 2
   const c = reach
   const angle = DIRECTION_ANGLE[dir] ?? 0
@@ -74,7 +78,7 @@ const Mark = forwardRef(function Mark({ dir = 'right', length = 96 }, ref) {
   )
 
   const pathStart = c + RING_R + GAP
-  const pathEnd = pathStart + length
+  const pathEnd = c + length
 
   return (
     <div

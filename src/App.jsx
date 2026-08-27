@@ -6,6 +6,8 @@ import FilmStage from './components/FilmStage.jsx'
 import ScrollTrack from './components/ScrollTrack.jsx'
 import SectionIndicator from './components/SectionIndicator.jsx'
 import SectionRail from './components/SectionRail.jsx'
+import ScrollCue from './components/ScrollCue.jsx'
+import SoundToggle from './components/SoundToggle.jsx'
 import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
 import { Playhead } from './lib/Playhead.js'
@@ -21,6 +23,7 @@ export default function App() {
   const [source, setSource] = useState(null) // { playhead, standIn, texture }
   const [transport, setTransport] = useState('idle') // idle | playing | armed
   const [committedIds, setCommittedIds] = useState(() => new Set())
+  const [muted, setMuted] = useState(false)
 
   const audioRef = useRef(null)
   const aspectRef = useRef(16 / 9)
@@ -30,6 +33,14 @@ export default function App() {
   const reducedMotion = useReducedMotion()
   const { active, activeRef } = useSectionScroll(SECTIONS.length)
   const section = SECTIONS[active] ?? SECTIONS[0]
+
+  const toggleSound = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev
+      audioRef.current?.setMuted(next)
+      return next
+    })
+  }, [])
 
   const handleCommit = useCallback(() => {
     sparkRef.current = { u: section.u, v: section.v, at: performance.now() }
@@ -145,8 +156,11 @@ export default function App() {
             <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest3 text-blush/70">
               Eroticad
             </span>
-            <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-crimson-400/70">
-              18+
+            <span className="flex items-center gap-4">
+              <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-crimson-400/70">
+                18+
+              </span>
+              <SoundToggle muted={muted} onToggle={toggleSound} />
             </span>
           </header>
 
@@ -160,6 +174,7 @@ export default function App() {
             handlers={drag.handlers}
           />
 
+          <ScrollCue visible={committedIds.has(section.id)} />
           <SectionRail active={active} committedIds={committedIds} />
           <ScrollTrack active={active} phase={transport} committedIds={committedIds} />
         </>
