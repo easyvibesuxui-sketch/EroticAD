@@ -16,7 +16,7 @@ import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
 import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
-import { useSectionScroll } from './hooks/useSectionScroll.js'
+import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
   const [phase, setPhase] = useState('gate') // gate -> booting -> live
@@ -31,8 +31,17 @@ export default function App() {
   const signalsRef = useRef({ progress: 0, phase: 'idle', section: 0, time: 0 })
 
   const reducedMotion = useReducedMotion()
-  const { active, activeRef } = useSectionScroll(SECTIONS.length)
-  const section = SECTIONS[active] ?? SECTIONS[0]
+  const trackRef = useRef(null)
+
+  // One more stop than there are sections: the last screen is the shop.
+  const { index, indexRef } = useSectionNavigation({
+    count: SECTIONS.length + 1,
+    enabled: phase === 'live',
+    trackRef,
+  })
+
+  const active = Math.min(index, SECTIONS.length - 1)
+  const section = SECTIONS[active]
 
   const toggleSound = useCallback(() => {
     setMuted((prev) => {
@@ -113,12 +122,10 @@ export default function App() {
     const root = document.documentElement
     const live = phase === 'live'
     root.style.overflowY = live ? 'auto' : 'hidden'
-    root.style.scrollSnapType = live && !reducedMotion ? 'y mandatory' : ''
     return () => {
       root.style.overflowY = ''
-      root.style.scrollSnapType = ''
     }
-  }, [phase, reducedMotion])
+  }, [phase])
 
   useEffect(() => () => audioRef.current?.dispose(), [])
 
@@ -129,7 +136,7 @@ export default function App() {
         playhead={source.playhead}
         standIn={source.standIn}
         texture={source.texture}
-        activeRef={activeRef}
+        activeRef={indexRef}
         progressRef={drag.progressRef}
         aspectRef={aspectRef}
         sparkRef={sparkRef}
@@ -139,7 +146,7 @@ export default function App() {
         reducedMotion={reducedMotion}
       />
     )
-  }, [source, activeRef, drag.progressRef, reducedMotion])
+  }, [source, indexRef, drag.progressRef, reducedMotion])
 
   const live = phase === 'live'
 
@@ -176,7 +183,7 @@ export default function App() {
 
           <ScrollCue visible={committedIds.has(section.id)} />
           <SectionRail active={active} committedIds={committedIds} />
-          <ScrollTrack active={active} phase={transport} committedIds={committedIds} />
+          <ScrollTrack ref={trackRef} active={active} committedIds={committedIds} />
         </>
       )}
 

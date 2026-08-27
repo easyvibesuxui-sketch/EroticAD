@@ -5,8 +5,12 @@
 export default function ScrollCue({ visible }) {
   return (
     <div
-      className="materialize pointer-events-none fixed inset-x-0 bottom-8 z-30 flex flex-col items-center gap-2"
+      className="materialize fixed inset-x-0 bottom-8 z-30 flex flex-col items-center gap-2"
       data-visible={visible}
+      /* `.materialize[data-visible]` restores pointer events for the CTA it was
+         written for; this one is a caption across the foot of the screen and
+         must never take a touch. Inline beats both rules. */
+      style={{ pointerEvents: 'none' }}
       aria-hidden={!visible}
     >
       <span className="font-sans text-[0.52rem] font-light uppercase tracking-widest2 text-gold-300/70">

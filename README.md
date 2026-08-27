@@ -92,7 +92,7 @@ src/
     media.js / loadMedia.js  source candidates, first-that-decodes
     standin.js             procedural footage for when nothing loads
   hooks/
-    useSectionScroll.js    which section the page is on
+    useSectionNavigation.js  one gesture, one section — wheel, swipe and keys
     useDirectionalDrag.js  pointer travel -> 0..1 along a direction
     useReducedMotion.js
 ```
@@ -118,6 +118,33 @@ media in `public/media/`.
 
 The virtual clock runs on wall time, not on render deltas: a film does not play
 in slow motion because the GPU is busy, and the stand-in must not either.
+
+### Moving between sections
+
+CSS scroll snapping was the obvious answer and it does not work here. Measured,
+with `y mandatory` and `scroll-snap-align: start` on every section: one wheel
+gesture came to rest at 420px — *between* two sections — the next did nothing at
+all, the one after jumped 840px, and a flick landed at 3700px, aligned to
+nothing. `scroll-behavior: smooth` and mandatory snapping fight each other, and
+nothing stops a flick crossing several snap points anyway.
+
+So the wheel, the swipe and the keys are read directly and each moves exactly
+one section. The document still scrolls, so the scrollbar and assistive
+technology keep working — but a section boundary is the only position ever
+asked for.
+
+Two details earn their keep:
+
+- **The move is a cut, not a scroll.** The stage is fixed, so a section change
+  moves nothing except the copy and the rail, and both already cross-fade over
+  ~900ms. An animated scroll would animate only the scrollbar — while being the
+  one part of this that needs a free main thread. With the shader running, a
+  smooth 844px scroll had not finished 2.6 seconds later and the film sat a
+  whole section ahead of the page.
+- **Momentum is waited out, not timed out.** After a move, wheel input is
+  swallowed until it has been quiet for 150ms. A fixed timeout either cuts the
+  trackpad's tail off too early — and that tail moves a second section — or is
+  long enough to make the page feel dead.
 
 ### The drag
 
@@ -223,9 +250,10 @@ camera — is in [`docs/MEDIA-PLAN.md`](docs/MEDIA-PLAN.md).
 - **Safety.** No video element is created, no texture is uploaded and no audio
   graph exists before the age gate is answered, and the page does not scroll
   until it is.
-- **Accessibility.** Every action has a keyboard equivalent, the mark is a
-  labelled control with a visible focus ring, and `prefers-reduced-motion`
-  damps the breathing and turns off scroll snapping.
+- **Accessibility.** Every action has a keyboard equivalent — space performs
+  the section's action, arrows and Page Up/Down move between sections, Home and
+  End jump to the ends — the mark is a labelled control with a visible focus
+  ring, and `prefers-reduced-motion` damps the breathing.
 - **Frame-rate honesty.** Every timed thing — the drag settle, the mark's
   arrival, the haze — eases over elapsed time rather than over frames. A
   threshold tuned at 60fps that silently breaks at 30 is the bug this project

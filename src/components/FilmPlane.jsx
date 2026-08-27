@@ -79,7 +79,9 @@ export default function FilmPlane({
     if (!material) return
     const u = material.uniforms
 
-    const section = SECTIONS[activeRef.current] ?? SECTIONS[0]
+    // The last stop on the page is the shop, which has no footage of its own —
+    // it holds on the tenth section rather than falling back to the first.
+    const section = SECTIONS[Math.min(activeRef.current, SECTIONS.length - 1)]
     const progress = progressRef.current
 
     // --- the transport ----------------------------------------------------

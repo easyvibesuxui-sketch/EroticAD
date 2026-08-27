@@ -85,6 +85,7 @@ export default function SectionIndicator({
         ref={hitRef}
         {...handlers}
         role="button"
+        data-claims-touch={armed && !committed}
         tabIndex={armed ? 0 : -1}
         aria-label={`${section.action}. Drag ${section.dir}, or press space.`}
         aria-pressed={committed}
@@ -98,14 +99,13 @@ export default function SectionIndicator({
           /*
            * Only ever claim the axis the action actually needs.
            *
-           * A horizontal action leaves `pan-y` alone, so the page scrolls
-           * through the mark at all times. A vertical one has to take the
-           * whole gesture — but only until it is done: once the action has
-           * been performed the surface hands the axis back, because the next
-           * thing anyone wants to do is scroll on, and a spent control has no
-           * business swallowing that.
+           * While the action is outstanding the mark owns the gesture
+           * outright — the section is driven, not scrolled, so there is no
+           * native panning to preserve. The moment the action is done the
+           * surface hands the touch back: the next thing anyone wants to do is
+           * scroll on, and a spent control has no business swallowing that.
            */
-          touchAction: committed ? 'auto' : horizontal ? 'pan-y' : 'none',
+          touchAction: committed ? 'auto' : 'none',
           opacity: 0,
         }}
       >

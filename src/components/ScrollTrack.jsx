@@ -9,9 +9,15 @@ import { SECTIONS } from '../lib/sections.js'
  * frame stays clean. Nothing here is a scroll listener: the active index comes
  * from one place and changes ten times in the life of the page.
  */
-export default function ScrollTrack({ active, phase, committedIds }) {
+import { forwardRef } from 'react'
+
+/** Sections are sized in `svh` where it exists: on a phone `vh` changes as the
+ *  URL bar hides, which quietly desynchronises every section boundary. */
+const SECTION_HEIGHT = { height: '100svh' }
+
+const ScrollTrack = forwardRef(function ScrollTrack({ active, committedIds }, ref) {
   return (
-    <div className="relative z-20">
+    <div ref={ref} className="relative z-20">
       {SECTIONS.map((section) => {
         const isActive = section.index === active
         const done = committedIds.has(section.id)
@@ -20,7 +26,8 @@ export default function ScrollTrack({ active, phase, committedIds }) {
             key={section.id}
             id={section.id}
             data-active={isActive}
-            className="pointer-events-none relative h-screen snap-start"
+            className="pointer-events-none relative h-screen"
+            style={SECTION_HEIGHT}
             aria-hidden={!isActive}
           >
             <div
@@ -49,7 +56,10 @@ export default function ScrollTrack({ active, phase, committedIds }) {
       })}
 
       {/* the last screen: the film has been undone, now buy it */}
-      <section className="relative flex h-screen snap-start flex-col items-center justify-center gap-8 px-6 text-center">
+      <section
+        className="relative flex h-screen flex-col items-center justify-center gap-8 px-6 text-center"
+        style={SECTION_HEIGHT}
+      >
         <p className="font-sans text-[0.55rem] font-light uppercase tracking-widest3 text-gold-400/70">
           Ten of ten
         </p>
@@ -74,4 +84,6 @@ export default function ScrollTrack({ active, phase, committedIds }) {
       </section>
     </div>
   )
-}
+})
+
+export default ScrollTrack
