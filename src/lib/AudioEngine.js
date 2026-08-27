@@ -13,10 +13,23 @@ import { bpmFor } from './pulse.js'
  *  silent. Either way the tempo is driven by the same heart the shader is.
  */
 
-const MUFFLED_HZ = 180
+/*
+ * The veil on the sound.
+ *
+ * Deliberately not a hard low-pass. With ten actions per visit the filter is
+ * closed far more often than it is open, and a 180 Hz resting cutoff — right
+ * for a single held reveal — leaves a real track sounding broken for most of
+ * the page. 2.2 kHz reads as *veiled*: the music is plainly there, it just has
+ * not been let all the way into the room yet.
+ */
+const VEILED_HZ = 2200
 const OPEN_HZ = 18000
-const MUFFLED_Q = 7.5
+const VEILED_Q = 1.25
 const OPEN_Q = 0.7
+
+/** How much of your own pulse you hear while an action is still waiting. */
+const HEART_RESTING = 0.34
+const HEART_OPEN = 0.08
 
 const lerp = (a, b, t) => a + (b - a) * t
 
@@ -71,8 +84,8 @@ export class AudioEngine {
     // --- the glass: one filter the whole bed lives behind ---------------
     const tone = ctx.createBiquadFilter()
     tone.type = 'lowpass'
-    tone.frequency.value = MUFFLED_HZ
-    tone.Q.value = MUFFLED_Q
+    tone.frequency.value = VEILED_HZ
+    tone.Q.value = VEILED_Q
     tone.connect(master)
     this.tone = tone
 
@@ -351,12 +364,13 @@ export class AudioEngine {
     const now = ctx.currentTime
 
     // The glass opens. Exponential, because hearing is.
-    this.tone.frequency.value = MUFFLED_HZ * Math.pow(OPEN_HZ / MUFFLED_HZ, reveal)
-    this.tone.Q.value = lerp(MUFFLED_Q, OPEN_Q, reveal)
+    this.tone.frequency.value = VEILED_HZ * Math.pow(OPEN_HZ / VEILED_HZ, reveal)
+    this.tone.Q.value = lerp(VEILED_Q, OPEN_Q, reveal)
     if (this.padFilter) this.padFilter.frequency.value = lerp(620, 2400, reveal)
 
-    // Heartbeat recedes as the view clears — you stop listening to yourself.
-    this.heartBus.gain.value = lerp(0.85, 0.12, reveal)
+    // Heartbeat recedes as the action completes — you stop listening to
+    // yourself. It sits under a real track, not over it.
+    this.heartBus.gain.value = lerp(HEART_RESTING, HEART_OPEN, reveal)
 
     // Breath comes forward.
     const target = 0.0001 + Math.pow(reveal, 1.6) * 0.5

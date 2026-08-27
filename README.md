@@ -203,6 +203,13 @@ filter.
 procedural footage into the shader and the audio engine synthesises its bed, so
 the mechanic is never a dead screen.
 
+**In place:** `public/media/track.mp3` — 2:57, VBR, 48 kHz. Still wanted:
+`scene.mp4` and `breath.mp3`.
+
+`npm run build:artifact` embeds whatever is in `public/media/` as data URIs, so
+the single-file build carries its own sound. Base64 costs a third in size —
+budget for it against the 16 MB ceiling.
+
 What the footage actually has to be — and why the encode matters more than the
 camera — is in [`docs/MEDIA-PLAN.md`](docs/MEDIA-PLAN.md).
 

@@ -10,7 +10,7 @@
  *
  *   npm run build && node scripts/build-artifact.mjs
  */
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIST = 'dist/assets'
@@ -23,6 +23,31 @@ if (!js || !css) throw new Error('Run `npm run build` first.')
 
 const script = readFileSync(join(DIST, js), 'utf8')
 const styles = readFileSync(join(DIST, css), 'utf8')
+
+/**
+ * The page is served from its own origin with no `/media/` behind it, so any
+ * real asset has to travel inside the file. Base64 costs a third in size,
+ * which is the price of the thing being self-contained at all.
+ */
+const MEDIA_SLOTS = [
+  ['video', 'public/media/scene.mp4', 'video/mp4'],
+  ['music', 'public/media/track.mp3', 'audio/mpeg'],
+  ['breath', 'public/media/breath.mp3', 'audio/mpeg'],
+]
+
+const injected = {}
+let embeddedBytes = 0
+for (const [slot, path, mime] of MEDIA_SLOTS) {
+  if (!existsSync(path)) continue
+  const bytes = statSync(path).size
+  embeddedBytes += bytes
+  injected[slot] = [`data:${mime};base64,${readFileSync(path).toString('base64')}`]
+  console.log(`  embedding ${slot}: ${path} (${(bytes / 1024 / 1024).toFixed(1)} MB)`)
+}
+
+const mediaTag = Object.keys(injected).length
+  ? `<script>window.__EROTICAD_MEDIA=${JSON.stringify(injected)}</script>\n`
+  : ''
 
 // A literal </script> anywhere in the bundle would close the tag early.
 const safeScript = script.replace(/<\/script/gi, '<\\/script')
@@ -61,11 +86,14 @@ body {
 
 <div id="root"></div>
 
-<script type="module">
+${mediaTag}<script type="module">
 ${safeScript}
 </script>
 `
 
 writeFileSync(OUT, html)
-const kb = (html.length / 1024).toFixed(0)
-console.log(`${OUT} — ${kb} KB`)
+const mb = (html.length / 1024 / 1024).toFixed(2)
+console.log(`${OUT} — ${mb} MB (${(embeddedBytes / 1024 / 1024).toFixed(1)} MB of it media)`)
+if (html.length > 16 * 1024 * 1024) {
+  console.warn('  ! over the 16 MB artifact ceiling — the media needs trimming')
+}

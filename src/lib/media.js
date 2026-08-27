@@ -17,18 +17,29 @@
  * stays demoable with no assets at all.
  */
 
+/**
+ * A single-file build has no origin to serve `/media/` from, so it injects its
+ * assets as data URIs on `window.__EROTICAD_MEDIA` before the app boots. They
+ * take priority over everything else; when the global is absent — which is the
+ * normal, served case — this list is unchanged.
+ */
+const injected = (typeof window !== 'undefined' && window.__EROTICAD_MEDIA) || {}
+
 export const MEDIA = {
   video: [
+    ...(injected.video || []),
     '/media/scene.mp4',
     'https://mdn.github.io/shared-assets/videos/flower.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
   ],
   music: [
+    ...(injected.music || []),
     '/media/track.mp3',
     'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
     'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   ],
   breath: [
+    ...(injected.breath || []),
     '/media/breath.mp3',
     'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
   ],
