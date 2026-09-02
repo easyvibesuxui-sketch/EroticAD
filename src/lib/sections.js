@@ -16,10 +16,10 @@
  * the direction the action reads in the footage.
  */
 
-/** Seconds of each section that play on their own. */
-export const AUTOPLAY_SECONDS = 6
+/** Seconds of a section that play on their own, unless it says otherwise. */
+export const AUTOPLAY_SECONDS = 8
 
-/** Seconds at the end of each section that only the hand can move. */
+/** Seconds at the end of a section that only the hand can move. */
 export const SCRUB_SECONDS = 2
 
 export const SECTION_SECONDS = AUTOPLAY_SECONDS + SCRUB_SECONDS
@@ -27,19 +27,53 @@ export const SECTION_SECONDS = AUTOPLAY_SECONDS + SCRUB_SECONDS
 /** Past this, releasing settles the action open instead of winding it back. */
 export const COMMIT_THRESHOLD = 0.82
 
-const section = (i, rest) => ({
-  index: i,
-  start: i * SECTION_SECONDS,
-  autoplayEnd: i * SECTION_SECONDS + AUTOPLAY_SECONDS,
-  scrubEnd: (i + 1) * SECTION_SECONDS,
-  length: 96,
-  steam: 0.2,
-  ...rest,
-})
+/**
+ * A section may carry its own clip (`src`), which is how the film is actually
+ * being delivered — one file per setup. Then its timings are measured from the
+ * start of that file. Without one it falls back to the shared cut, or to the
+ * stand-in, and its timings are measured from its slot in that longer piece.
+ * Both sets are computed here; the source that resolves at runtime decides
+ * which pair is used.
+ */
+const section = (i, rest) => {
+  const autoplay = rest.autoplay ?? AUTOPLAY_SECONDS
+  const scrub = rest.scrub ?? SCRUB_SECONDS
+  const sharedStart = i * SECTION_SECONDS
+  return {
+    index: i,
+    length: 96,
+    steam: 0.2,
+    ...rest,
+    autoplay,
+    scrub,
+    // Its own clip: the section is the whole file.
+    ownStart: 0,
+    ownAutoplayEnd: autoplay,
+    ownScrubEnd: autoplay + scrub,
+    // A slot in the shared cut, or in the procedural stand-in.
+    sharedStart,
+    sharedAutoplayEnd: sharedStart + autoplay,
+    sharedScrubEnd: sharedStart + autoplay + scrub,
+  }
+}
 
-export const SECTIONS = [
+/**
+ * A single-file build has no `/media/` to serve from, so it injects each clip
+ * as a data URI keyed by section id. Absent — the normal, served case — the
+ * paths below are used unchanged.
+ */
+const injectedSections =
+  (typeof window !== 'undefined' && window.__EROTICAD_MEDIA?.sections) || {}
+
+const withInjected = (list) =>
+  list.map((s) => (s.src && injectedSections[s.id] ? { ...s, src: injectedSections[s.id] } : s))
+
+export const SECTIONS = withInjected([
   section(0, {
     id: 'hair',
+    src: '/media/sections/01-hair.mp4',
+    autoplay: 8,
+    scrub: 2,
     action: 'Sweep the hair aside',
     title: 'One',
     caption: 'She has not decided yet.',
@@ -141,6 +175,6 @@ export const SECTIONS = [
     length: 128,
     steam: 0.4,
   }),
-]
+])
 
 export const FILM_SECONDS = SECTIONS.length * SECTION_SECONDS

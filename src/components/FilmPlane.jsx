@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import vertexShader from '../shaders/steam.vert.glsl?raw'
 import fragmentShader from '../shaders/steam.frag.glsl?raw'
 import { breath, clamp01, heartbeat, bpmFor } from '../lib/pulse.js'
-import { SCRUB_SECONDS, SECTIONS } from '../lib/sections.js'
+import { SECTIONS } from '../lib/sections.js'
 
 /** How long a mark's gold bloom lives after the action commits. */
 const SPARK_SECONDS = 0.9
@@ -25,8 +25,8 @@ const SPARK_SECONDS = 0.9
  */
 export default function FilmPlane({
   playhead,
+  sources,
   standIn,
-  texture,
   activeRef,
   progressRef,
   aspectRef,
@@ -38,7 +38,7 @@ export default function FilmPlane({
 }) {
   const materialRef = useRef()
   const phaseRef = useRef('idle')
-  const sectionRef = useRef(-1)
+  const sourceKeyRef = useRef('')
   const beatRef = useRef(0)
   const steamRef = useRef(1)
   const sparkStateRef = useRef({ amount: 0, at: 0 })
@@ -47,7 +47,7 @@ export default function FilmPlane({
 
   const uniforms = useMemo(
     () => ({
-      uTex: { value: texture },
+      uTex: { value: null },
       uCoverScale: { value: new THREE.Vector2(1, 1) },
       uPlaneAspect: { value: 16 / 9 },
       uTime: { value: 0 },
@@ -61,7 +61,7 @@ export default function FilmPlane({
       uSpark: { value: 0 },
       uSparkPos: { value: new THREE.Vector2(0.5, 0.5) },
     }),
-    [texture],
+    [],
   )
 
   const setPhase = (next) => {
@@ -69,8 +69,6 @@ export default function FilmPlane({
     phaseRef.current = next
     onPhaseChange?.(next)
   }
-
-  useEffect(() => () => texture.dispose(), [texture])
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 1 / 10)
@@ -85,9 +83,19 @@ export default function FilmPlane({
     const progress = progressRef.current
 
     // --- the transport ----------------------------------------------------
-    if (section.index !== sectionRef.current) {
-      sectionRef.current = section.index
-      playhead.seek(section.start, 0)
+    // Each section carries its own clip, so arriving at one may mean a
+    // different file, a different texture and a different playhead. The key
+    // covers both: a new section, and the same section's own clip finally
+    // finishing what the stand-in was covering for.
+    sources.prepare(section.index)
+    const source = sources.get(section.index)
+    const key = `${section.index}:${source.kind}`
+
+    if (key !== sourceKeyRef.current) {
+      sourceKeyRef.current = key
+      u.uTex.value = source.texture
+      playhead.attach(source.el)
+      playhead.seek(source.start, 0)
       playhead.play()
       setPhase('playing')
     }
@@ -97,15 +105,15 @@ export default function FilmPlane({
     if (phaseRef.current === 'playing') {
       // Frame-accurate, which `timeupdate` is not — it fires four times a
       // second and would overshoot the hold by up to a fifth of a second.
-      if (playhead.time >= section.autoplayEnd - 0.03) {
+      if (playhead.time >= source.autoplayEnd - 0.03) {
         playhead.pause()
-        playhead.seek(section.autoplayEnd, 0)
+        playhead.seek(source.autoplayEnd, 0)
         setPhase('armed')
       }
     }
 
     if (phaseRef.current === 'armed') {
-      playhead.seek(section.autoplayEnd + progress * SCRUB_SECONDS)
+      playhead.seek(source.autoplayEnd + progress * (source.scrubEnd - source.autoplayEnd))
     }
 
     // --- geometry ---------------------------------------------------------
@@ -128,9 +136,9 @@ export default function FilmPlane({
     )
     u.uWipe.value = progress
 
-    if (standIn) {
+    if (source.kind === 'standin' && standIn) {
       standIn.draw(playhead.time)
-      texture.needsUpdate = true
+      source.texture.needsUpdate = true
     }
 
     // --- atmosphere -------------------------------------------------------

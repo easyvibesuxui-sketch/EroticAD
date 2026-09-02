@@ -1,7 +1,7 @@
 # EROTICAD — Ten sections, ten actions
 
-One film, cut into ten. Each section plays six seconds on its own, then stops
-dead — and the last two seconds only move if you move them.
+One film, ten sections. Each plays eight seconds on its own, then stops dead —
+and the last two seconds only move if you move them.
 
 That is the whole site rule. A gold mark appears where the action is, dashes
 point the way, and dragging along them runs the film frame by frame: the strap
@@ -25,7 +25,7 @@ npm run build:artifact   # one self-contained HTML file
 ```
 scroll to a section
    │
-   ├─ playing   the section's first 6s run themselves
+   ├─ playing   the section's first 8s run themselves
    │
    ├─ armed     the playhead stops. The mark appears where the action is.
    │
@@ -41,9 +41,9 @@ in a different place, in a different direction.
 | | |
 | --- | --- |
 | Sections | 10 |
-| Autoplay per section | 6s |
+| Autoplay per section | 8s |
 | Mechanical per section | 2s |
-| Film length | 80s |
+| Film length | 100s, as ten clips |
 
 Ten ticks down the right edge show where you are; a tick turns **gold** when
 its action has actually been performed — not when its section has been passed.
@@ -86,6 +86,7 @@ src/
   lib/
     sections.js            the ten: timings, mark positions, directions, copy
     Playhead.js            seconds in, frames out — over a <video> or a clock
+    filmSources.js         which clip a section plays, and what it falls back to
     layout.js              cover-fit mapping shared by the shader and the marks
     pulse.js               heartbeat, respiration
     AudioEngine.js         the filter graph, and a synth bed when there is no track
@@ -230,8 +231,13 @@ filter.
 procedural footage into the shader and the audio engine synthesises its bed, so
 the mechanic is never a dead screen.
 
-**In place:** `public/media/track.mp3` — 2:57, VBR, 48 kHz. Still wanted:
-`scene.mp4` and `breath.mp3`.
+**In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
+`public/media/sections/01-hair.mp4` (10.04s, 1280×720, 24fps). Still wanted:
+nine more section clips and `breath.mp3`.
+
+Each section names its own clip and carries its own timings, so the clips need
+not match in length. A section without one falls back to a shared cut, then to
+the stand-in — the site runs with ten files, one, or none.
 
 `npm run build:artifact` embeds whatever is in `public/media/` as data URIs, so
 the single-file build carries its own sound. Base64 costs a third in size —

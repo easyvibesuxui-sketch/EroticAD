@@ -18,6 +18,18 @@ export class Playhead {
     this.fallbackDuration = duration
   }
 
+  /**
+   * Point at a different element — or at none, which drops back to the virtual
+   * clock. Each section carries its own file, so this happens on every section
+   * change.
+   */
+  attach(videoEl) {
+    if (this.video === videoEl) return
+    this.video?.pause()
+    this.video = videoEl || null
+    if (!this.video) this.lastTick = performance.now()
+  }
+
   get isVirtual() {
     return !this.video
   }

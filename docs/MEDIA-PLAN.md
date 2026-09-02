@@ -1,14 +1,14 @@
-# Media plan — one 80-second film
+# Media plan — ten clips of ten seconds
 
-**One video.** 80 seconds, ten sections of eight. Plus a portrait render of the
-same film, and optionally the long-form scene behind the final CTA.
+**One clip per section**, which is how the film is actually being delivered and
+how it should be: ten locked-off setups, each its own file. Plus a portrait
+render of each, and optionally the long-form scene behind the final CTA.
 
-That is a much easier brief than it sounds, and considerably easier than the
-earlier single-loop version — because each section now owns its own indicator,
-**cuts between sections are free**. Section three can be a different angle, a
-different lens, a different room.
+Each section owns its own indicator, so **cuts between sections are free**:
+section three can be a different angle, a different lens, a different room.
 
-The constraints have moved from the shoot to the edit and the encode.
+The constraints have moved from the shoot to the edit and the encode. One of
+them is currently unmet — see *What the first clip tells us*.
 
 ---
 
@@ -16,29 +16,57 @@ The constraints have moved from the shoot to the edit and the encode.
 
 | Slot | File | Count |
 | --- | --- | --- |
-| The film | `public/media/scene.mp4` | 1 |
-| The bed | `public/media/track.mp3` | 1 |
+| Each section's clip | `public/media/sections/<nn>-<id>.mp4` | 10 |
+| The bed | `public/media/track.mp3` | 1 ✅ |
 | The close layer (breath, fabric, room) | `public/media/breath.mp3` | 1 |
 
-Drop those three in and the site runs. Section timings live in
-`src/lib/sections.js` and are pure arithmetic — section *n* owns
-`[n·8, n·8+8)`, plays to `n·8+6`, and hands the last two seconds to the hand.
+A section names its own clip in `src/lib/sections.js` and carries its own
+timings with it, so clips need not all be the same length — section one is
+`autoplay: 8, scrub: 2`. A section with no clip yet falls back to a shared cut
+if one exists, and to the procedural stand-in if not, so the site runs with ten
+files, one, or none.
+
+Delivered so far: **section 1** (`01-hair.mp4`) — 10.04s, 1280×720, 24fps.
 
 ---
 
-## The shape of each eight seconds
+## What the first clip tells us
+
+`01-hair.mp4` parses clean: 10.042s, 1280×720, 24fps, H.264, `moov` ahead of
+`mdat` so it starts before it has finished downloading. All good.
+
+One thing is not. Reading its sync-sample table:
+
+> **1 keyframe, at 0.00s, for all 241 frames.**
+
+The action range starts at 8.04s. With no keyframe after the first, every seek
+into that range has to decode **193 frames from the beginning of the file**.
+Dragging forward may survive on decoder cache — the playhead is already there —
+but dragging *back*, which the mechanic is built on, re-decodes from zero every
+time. That is the difference between a control and a slideshow.
+
+The fix is the encode, not the shoot: re-run the same master through the command
+below. `-g 6` puts a keyframe every 0.24s, so no seek decodes more than six
+frames.
+
+(Measured from the file's `stss` box. It could not be played here to time the
+seeks directly — this environment's Chromium ships without an H.264 decoder, so
+the app correctly fell back to the stand-in. The keyframe count is a property of
+the file, not of the player.)
+
+## The shape of each ten seconds
 
 ```
-0s ─────────── 6s ══════ 8s
+0s ─────────── 8s ══════ 10s
    plays itself   the hand
 ```
 
-**Seconds 0–6 — the approach.** Normal filmmaking. It plays once, at speed,
-and stops. Land the sixth second on a frame worth stopping on: this is the
+**Seconds 0–8 — the approach.** Normal filmmaking. It plays once, at speed,
+and stops. Land the eighth second on a frame worth stopping on: this is the
 image people look at while they work out what to do. It should be composed,
 still, and slightly unresolved.
 
-**Seconds 6–8 — the action.** One continuous physical movement, and only one:
+**Seconds 8–10 — the action.** One continuous physical movement, and only one:
 a strap slipping, hair going back, a ribbon coming loose. Rules for these two
 seconds:
 
@@ -146,9 +174,9 @@ silent. That is a fallback, not a plan.
 
 ## Shot list summary
 
-| # | Section | Action (seconds 6–8) | Direction |
-| --- | --- | --- | --- |
-| 1 | `hair` | Sweep the hair aside | right |
+| # | Section | Action (last 2s) | Direction | Status |
+| --- | --- | --- | --- | --- |
+| 1 | `hair` | Sweep the hair aside | right | ✅ delivered, needs re-encoding |
 | 2 | `strap` | Slip the strap | down |
 | 3 | `clasp` | Open the clasp | left |
 | 4 | `lace` | Follow the lace | right |

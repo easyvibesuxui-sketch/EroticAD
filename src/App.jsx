@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import * as THREE from 'three'
 
 import AgeGate from './components/AgeGate.jsx'
 import FilmStage from './components/FilmStage.jsx'
@@ -11,6 +10,7 @@ import SoundToggle from './components/SoundToggle.jsx'
 import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
 import { Playhead } from './lib/Playhead.js'
+import { createFilmSources } from './lib/filmSources.js'
 import { SECTIONS } from './lib/sections.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
@@ -20,7 +20,7 @@ import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
   const [phase, setPhase] = useState('gate') // gate -> booting -> live
-  const [source, setSource] = useState(null) // { playhead, standIn, texture }
+  const [source, setSource] = useState(null) // { playhead, sources, standIn }
   const [transport, setTransport] = useState('idle') // idle | playing | armed
   const [committedIds, setCommittedIds] = useState(() => new Set())
   const [muted, setMuted] = useState(false)
@@ -97,19 +97,15 @@ export default function App() {
       loadAudio(MEDIA.breath),
     ])
 
-    // No footage? Run the whole architecture against a virtual playhead and
-    // the procedural stand-in, rather than showing a dead screen.
+    // Sections carry their own clips; anything not yet delivered falls back to
+    // a shared cut, and failing that to the procedural stand-in, so the whole
+    // architecture runs with one file or with none.
     const standIn = video ? null : createStandIn()
-    const playhead = new Playhead(video)
-    const texture = video ? new THREE.VideoTexture(video) : new THREE.CanvasTexture(standIn.canvas)
-    texture.minFilter = THREE.LinearFilter
-    texture.magFilter = THREE.LinearFilter
-    texture.generateMipmaps = false
-    texture.wrapS = THREE.ClampToEdgeWrapping
-    texture.wrapT = THREE.ClampToEdgeWrapping
-    texture.colorSpace = THREE.SRGBColorSpace
+    const playhead = new Playhead(null)
+    const sources = createFilmSources({ sections: SECTIONS, sharedVideo: video, standIn })
+    sources.prepare(0)
 
-    setSource({ playhead, standIn, texture })
+    setSource({ playhead, sources, standIn })
 
     const breath =
       breathTrack && music && breathTrack.currentSrc === music.currentSrc ? null : breathTrack
@@ -128,14 +124,15 @@ export default function App() {
   }, [phase])
 
   useEffect(() => () => audioRef.current?.dispose(), [])
+  useEffect(() => () => source?.sources.dispose(), [source])
 
   const stage = useMemo(() => {
     if (!source) return null
     return (
       <FilmStage
         playhead={source.playhead}
+        sources={source.sources}
         standIn={source.standIn}
-        texture={source.texture}
         activeRef={indexRef}
         progressRef={drag.progressRef}
         aspectRef={aspectRef}

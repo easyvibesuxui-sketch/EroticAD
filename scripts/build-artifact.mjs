@@ -13,6 +13,8 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { SECTIONS } from '../src/lib/sections.js'
+
 const DIST = 'dist/assets'
 const OUT = 'dist/eroticad-artifact.html'
 
@@ -29,21 +31,90 @@ const styles = readFileSync(join(DIST, css), 'utf8')
  * real asset has to travel inside the file. Base64 costs a third in size,
  * which is the price of the thing being self-contained at all.
  */
+/**
+ * In priority order. Base64 costs a third on top, and the page has a hard
+ * ceiling, so what does not fit is left out rather than silently overflowing —
+ * and the build says which, instead of failing at publish time.
+ *
+ * Section clips come first: they are the film, and the film is the subject.
+ */
+const CEILING_MB = 15.2
+
+/**
+ * MP3 frames are self-delimiting, so a track can be shortened by walking the
+ * frame headers and stopping — no decoder needed. The single-file build uses a
+ * trimmed loop when the whole track will not fit beside the film; the served
+ * site always gets the full one.
+ */
+function trimMp3(buf, seconds) {
+  const BITRATES = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
+  const RATES = [44100, 48000, 32000]
+  let i = 0
+  if (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
+    i = 10 + ((buf[6] & 0x7f) << 21 | (buf[7] & 0x7f) << 14 | (buf[8] & 0x7f) << 7 | (buf[9] & 0x7f))
+  }
+  let played = 0
+  while (i < buf.length - 4) {
+    if (buf[i] !== 0xff || (buf[i + 1] & 0xe0) !== 0xe0) { i++; continue }
+    const br = BITRATES[(buf[i + 2] >> 4) & 0xf]
+    const sr = RATES[(buf[i + 2] >> 2) & 0x3]
+    if (!br || !sr) { i++; continue }
+    const len = ((144 * br * 1000) / sr | 0) + ((buf[i + 2] >> 1) & 1)
+    if (len <= 0) { i++; continue }
+    played += 1152 / sr
+    i += len
+    if (played >= seconds) break
+  }
+  return buf.subarray(0, i)
+}
+
 const MEDIA_SLOTS = [
+  ...SECTIONS.filter((s) => s.src).map((s) => [
+    `section:${s.id}`,
+    `public${s.src}`,
+    'video/mp4',
+  ]),
   ['video', 'public/media/scene.mp4', 'video/mp4'],
   ['music', 'public/media/track.mp3', 'audio/mpeg'],
   ['breath', 'public/media/breath.mp3', 'audio/mpeg'],
 ]
 
 const injected = {}
+const sectionSrc = {}
+const skipped = []
+let budget = CEILING_MB * 1024 * 1024 - script.length - styles.length
 let embeddedBytes = 0
+
 for (const [slot, path, mime] of MEDIA_SLOTS) {
   if (!existsSync(path)) continue
-  const bytes = statSync(path).size
+  let raw = readFileSync(path)
+  let note = ''
+  if (Math.ceil(raw.length / 3) * 4 > budget && slot === 'music') {
+    // Rather than drop the sound entirely, shorten the loop until it fits.
+    for (const seconds of [90, 60, 45, 30]) {
+      const trimmed = trimMp3(raw, seconds)
+      if (Math.ceil(trimmed.length / 3) * 4 <= budget) {
+        raw = trimmed
+        note = ` (trimmed to ~${seconds}s to fit)`
+        break
+      }
+    }
+  }
+  const encoded = Math.ceil(raw.length / 3) * 4
+  if (encoded > budget) {
+    skipped.push(`${slot} (${(statSync(path).size / 1024 / 1024).toFixed(1)} MB)`)
+    continue
+  }
+  budget -= encoded
+  const bytes = raw.length
   embeddedBytes += bytes
-  injected[slot] = [`data:${mime};base64,${readFileSync(path).toString('base64')}`]
-  console.log(`  embedding ${slot}: ${path} (${(bytes / 1024 / 1024).toFixed(1)} MB)`)
+  const uri = `data:${mime};base64,${raw.toString('base64')}`
+  if (slot.startsWith('section:')) sectionSrc[slot.slice(8)] = uri
+  else injected[slot] = [uri]
+  console.log(`  embedding ${slot}: ${(bytes / 1024 / 1024).toFixed(1)} MB${note}`)
 }
+if (Object.keys(sectionSrc).length) injected.sections = sectionSrc
+if (skipped.length) console.log(`  left out (no room): ${skipped.join(', ')}`)
 
 const mediaTag = Object.keys(injected).length
   ? `<script>window.__EROTICAD_MEDIA=${JSON.stringify(injected)}</script>\n`
