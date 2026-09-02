@@ -79,7 +79,6 @@ const MEDIA_SLOTS = [
   ),
   ['video', 'public/media/scene.mp4', 'video/mp4'],
   ['music', 'public/media/track.mp3', 'audio/mpeg'],
-  ['after', 'public/media/after.mp3', 'audio/mpeg'],
 ]
 
 const injected = {}
