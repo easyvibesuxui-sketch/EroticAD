@@ -70,17 +70,24 @@ const withInjected = (list) =>
 
 export const SECTIONS = withInjected([
   section(0, {
-    id: 'hair',
-    src: '/media/sections/01-hair.mp4',
+    id: 'robe',
+    src: '/media/sections/01-robe.mp4',
     autoplay: 8,
     scrub: 2,
-    action: 'Sweep the hair aside',
+    action: 'Draw the robe open',
     title: 'One',
-    caption: 'She has not decided yet.',
-    u: 0.52,
-    v: 0.34,
-    dir: 'right',
-    steam: 0.34,
+    caption: 'It was never really closed.',
+    // Measured off the clip, not guessed: at the eighth second the near hand
+    // grips the robe here, and over the next two seconds it travels down and
+    // out. Down is the dominant axis by more than two to one, so that is the
+    // axis the drag reads.
+    u: 0.23,
+    v: 0.38,
+    dir: 'down',
+    length: 220,
+    // Tuned against the delivered footage rather than guessed at: 0.34 was set
+    // before there was a film to look at, and it fogged this one past reading.
+    steam: 0.22,
   }),
   section(1, {
     id: 'strap',

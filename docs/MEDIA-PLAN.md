@@ -26,33 +26,47 @@ timings with it, so clips need not all be the same length — section one is
 if one exists, and to the procedural stand-in if not, so the site runs with ten
 files, one, or none.
 
-Delivered so far: **section 1** (`01-hair.mp4`) — 10.04s, 1280×720, 24fps.
+Delivered so far: **section 1** (`01-robe.mp4`) — 10.04s, 1280×720, 24fps.
 
 ---
 
-## What the first clip tells us
+## What the first clip taught us
 
-`01-hair.mp4` parses clean: 10.042s, 1280×720, 24fps, H.264, `moov` ahead of
-`mdat` so it starts before it has finished downloading. All good.
-
-One thing is not. Reading its sync-sample table:
+The delivered file parsed clean — 10.042s, 1280×720, 24fps, H.264, `moov` ahead
+of `mdat` — with one fatal property. Its sync-sample table read:
 
 > **1 keyframe, at 0.00s, for all 241 frames.**
 
-The action range starts at 8.04s. With no keyframe after the first, every seek
-into that range has to decode **193 frames from the beginning of the file**.
-Dragging forward may survive on decoder cache — the playhead is already there —
-but dragging *back*, which the mechanic is built on, re-decodes from zero every
-time. That is the difference between a control and a slideshow.
+The action range starts at 8.04s, so every seek into it had to decode **193
+frames from the beginning of the file**. Dragging forward might have survived on
+decoder cache; dragging *back*, which the mechanic is built on, would have
+re-decoded from zero every time.
 
-The fix is the encode, not the shoot: re-run the same master through the command
-below. `-g 6` puts a keyframe every 0.24s, so no seek decodes more than six
-frames.
+Re-encoded through the command below:
 
-(Measured from the file's `stss` box. It could not be played here to time the
-seeks directly — this environment's Chromium ships without an H.264 decoder, so
-the app correctly fell back to the stand-in. The keyframe count is a property of
-the file, not of the player.)
+| | delivered | re-encoded |
+| --- | --- | --- |
+| Keyframes | 1 of 241 | **41 of 241** |
+| Largest gap between them | — | 0.25s |
+| Worst decode to reach the action range | **8.04s of frames** | **0.04s — one frame** |
+| Size | 6.82 MB | **6.46 MB** |
+
+It got *smaller*. The original was spending its bitrate on one enormous GOP.
+
+**Encode every clip this way before it is delivered.** It is the difference
+between a control and a slideshow, and it costs nothing.
+
+### Framing: this shot does not survive the portrait crop
+
+At the eighth second the two hands sit at u≈0.23 and u≈0.78. On a 390×844
+phone the visible slice of a 16:9 film is u ∈ [0.37, 0.63] — so **neither hand
+is on screen**, and the action of the section is invisible. The torso fills the
+frame and nothing appears to happen.
+
+This is the portrait-render requirement biting for real. Either frame the action
+within the central 26% of the width, or deliver the 9:16 cut with its own mark
+positions (`u`/`v` are film coordinates, so the same section can carry a second
+pair).
 
 ## The shape of each ten seconds
 
@@ -176,7 +190,7 @@ silent. That is a fallback, not a plan.
 
 | # | Section | Action (last 2s) | Direction | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `hair` | Sweep the hair aside | right | ✅ delivered, needs re-encoding |
+| 1 | `robe` | Draw the robe open | down | ✅ delivered, re-encoded, mark placed |
 | 2 | `strap` | Slip the strap | down |
 | 3 | `clasp` | Open the clasp | left |
 | 4 | `lace` | Follow the lace | right |

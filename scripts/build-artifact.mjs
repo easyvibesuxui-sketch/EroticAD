@@ -38,7 +38,10 @@ const styles = readFileSync(join(DIST, css), 'utf8')
  *
  * Section clips come first: they are the film, and the film is the subject.
  */
-const CEILING_MB = 15.2
+// Below the hard 16 MB page limit on purpose. This file is opened over whatever
+// connection the person sharing it has; the last two megabytes of a music loop
+// are not worth the wait.
+const CEILING_MB = 13
 
 /**
  * MP3 frames are self-delimiting, so a track can be shortened by walking the

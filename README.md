@@ -232,8 +232,8 @@ procedural footage into the shader and the audio engine synthesises its bed, so
 the mechanic is never a dead screen.
 
 **In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
-`public/media/sections/01-hair.mp4` (10.04s, 1280×720, 24fps). Still wanted:
-nine more section clips and `breath.mp3`.
+`public/media/sections/01-robe.mp4` (10.04s, 1280×720, 24fps, re-encoded to a
+6-frame GOP). Still wanted: nine more section clips and `breath.mp3`.
 
 Each section names its own clip and carries its own timings, so the clips need
 not match in length. A section without one falls back to a shared cut, then to
