@@ -34,12 +34,14 @@ export const MEDIA = {
     'https://mdn.github.io/shared-assets/videos/flower.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
   ],
-  music: [
-    ...(injected.music || []),
-    asset('/media/track.mp3'),
-    'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  ],
+  /*
+   * The music, and the only music. There is deliberately no stand-in behind
+   * it: a borrowed song is not this one, and the site playing something else
+   * because a file failed would be worse than the site playing nothing. The
+   * sound design around it — the veil, the heart, the tape, the chime, the
+   * breath — is synthesised in the graph and needs no files at all.
+   */
+  music: [...(injected.music || []), asset('/media/track.mp3')],
   /*
    * The second audio: the one that belongs to the end of a section, after the
    * mark has been drawn all the way. It is a cue, not a bed — so unlike the
