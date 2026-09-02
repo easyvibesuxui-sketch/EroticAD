@@ -11,8 +11,11 @@ import { DIRECTIONS } from '../lib/layout.js'
  * it un-happens, because it is the same two seconds of film read in either
  * direction. Nothing is animated: the hand is the transport.
  *
- * Let go and it commits or winds back, depending on how far it got. Halfway is
- * not a state a garment can be left in.
+ * Letting go changes nothing. The film stays on the frame the hand left it on,
+ * because that is what a mechanical control does — a spring that pulls the
+ * garment shut the moment you release would mean the hand was never really
+ * holding it. The piece counts as undone once the drag has carried it past the
+ * threshold, and counts as done up again if it is dragged back below.
  */
 export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true, onCommit }) {
   const [dragging, setDragging] = useState(false)
@@ -38,21 +41,17 @@ export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true,
     setCommitted(false)
   }, [])
 
-  const settle = useCallback(() => {
-    const past = progressRef.current >= COMMIT_THRESHOLD
-    targetRef.current = past ? 1 : 0
-    draggingRef.current = false
-    setDragging(false)
-    if (past && !committedRef.current) {
-      committedRef.current = true
-      setCommitted(true)
-      onCommit?.()
-    }
-    if (!past && committedRef.current) {
-      committedRef.current = false
-      setCommitted(false)
-    }
-  }, [onCommit])
+  /** Crossing the threshold either way is what marks the piece undone. */
+  const mark = useCallback(
+    (value) => {
+      const past = value >= COMMIT_THRESHOLD
+      if (past === committedRef.current) return
+      committedRef.current = past
+      setCommitted(past)
+      if (past) onCommit?.()
+    },
+    [onCommit],
+  )
 
   const onPointerDown = useCallback(
     (e) => {
@@ -77,16 +76,17 @@ export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true,
     const next = Math.max(0, Math.min(1, along / lengthRef.current))
     progressRef.current = next
     targetRef.current = next
-  }, [])
+    mark(next)
+  }, [mark])
 
-  const onPointerUp = useCallback(
-    (e) => {
-      if (!draggingRef.current) return
-      e.currentTarget.releasePointerCapture?.(e.pointerId)
-      settle()
-    },
-    [settle],
-  )
+  const onPointerUp = useCallback((e) => {
+    if (!draggingRef.current) return
+    e.currentTarget.releasePointerCapture?.(e.pointerId)
+    // Nothing moves. The frame the hand let go on is the frame that stays.
+    draggingRef.current = false
+    targetRef.current = progressRef.current
+    setDragging(false)
+  }, [])
 
   // Keyboard equivalent: the action is the point, not the dexterity.
   const onKeyDown = useCallback(
@@ -94,21 +94,17 @@ export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true,
       if (!enabled) return
       if (e.code !== 'Space' && e.code !== 'Enter') return
       e.preventDefault()
+      // No hand here, so this one does animate — but it is the only path that
+      // moves the film on its own.
       targetRef.current = targetRef.current > 0.5 ? 0 : 1
-      if (targetRef.current === 1 && !committedRef.current) {
-        committedRef.current = true
-        setCommitted(true)
-        onCommit?.()
-      } else if (targetRef.current === 0 && committedRef.current) {
-        committedRef.current = false
-        setCommitted(false)
-      }
+      mark(targetRef.current)
     },
-    [enabled, onCommit],
+    [enabled, mark],
   )
 
-  // Easing toward the settled position lives here rather than in the render
-  // loop, so the control behaves the same whether or not a frame is drawn.
+  // Only the keyboard path has anything to ease toward; a released drag has
+  // already arrived. This lives here rather than in the render loop so the
+  // control behaves the same whether or not a frame is drawn.
   useEffect(() => {
     let raf = 0
     let last = performance.now()

@@ -17,7 +17,10 @@ const SECTION_HEIGHT = { height: '100svh' }
 
 const ScrollTrack = forwardRef(function ScrollTrack({ active, committedIds }, ref) {
   return (
-    <div ref={ref} className="relative z-20">
+    /* The track itself must not take the pointer: with a mouse the whole frame
+       is the mark's handle, and this container sits above it. Only the last
+       screen, which has buttons and no drag, takes its clicks back. */
+    <div ref={ref} className="pointer-events-none relative z-20">
       {SECTIONS.map((section) => {
         const isActive = section.index === active
         const done = committedIds.has(section.id)

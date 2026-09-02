@@ -44,7 +44,8 @@ const section = (i, rest) => {
   const sharedStart = i * SECTION_SECONDS
   return {
     index: i,
-    length: 96,
+    /** Drag distance as a fraction of the viewport's shorter side. */
+    travel: 0.5,
     steam: 0.2,
     ...rest,
     // A slot in the shared cut, or in the procedural stand-in.
@@ -89,7 +90,9 @@ export const SECTIONS = withInjected([
     u: 0.68,
     v: 0.36,
     dir: 'right',
-    length: 250,
+    // A long, deliberate pull: the action clip runs two and a half seconds, and
+    // it should take about that long to draw it through by hand.
+    travel: 0.58,
     // Tuned against the delivered footage rather than guessed at: 0.34 was set
     // before there was a film to look at, and it fogged this one past reading.
     steam: 0.22,
@@ -103,7 +106,6 @@ export const SECTIONS = withInjected([
     u: 0.42,
     v: 0.3,
     dir: 'down',
-    length: 108,
   }),
   section(2, {
     id: 'clasp',
@@ -113,7 +115,6 @@ export const SECTIONS = withInjected([
     u: 0.58,
     v: 0.46,
     dir: 'left',
-    length: 84,
   }),
   section(3, {
     id: 'lace',
@@ -133,7 +134,6 @@ export const SECTIONS = withInjected([
     u: 0.5,
     v: 0.4,
     dir: 'down',
-    length: 116,
     steam: 0.3,
   }),
   section(5, {
@@ -144,7 +144,6 @@ export const SECTIONS = withInjected([
     u: 0.46,
     v: 0.52,
     dir: 'right',
-    length: 120,
   }),
   section(6, {
     id: 'glove',
@@ -154,7 +153,6 @@ export const SECTIONS = withInjected([
     u: 0.62,
     v: 0.44,
     dir: 'down',
-    length: 104,
   }),
   section(7, {
     id: 'sheet',
@@ -164,7 +162,6 @@ export const SECTIONS = withInjected([
     u: 0.55,
     v: 0.62,
     dir: 'left',
-    length: 112,
     steam: 0.3,
   }),
   section(8, {
@@ -175,7 +172,6 @@ export const SECTIONS = withInjected([
     u: 0.28,
     v: 0.36,
     dir: 'down',
-    length: 88,
   }),
   section(9, {
     id: 'door',
@@ -185,7 +181,6 @@ export const SECTIONS = withInjected([
     u: 0.5,
     v: 0.5,
     dir: 'right',
-    length: 128,
     steam: 0.4,
   }),
 ])

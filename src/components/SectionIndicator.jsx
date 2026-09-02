@@ -14,6 +14,7 @@ import { DIRECTIONS, filmToScreen } from '../lib/layout.js'
  */
 export default function SectionIndicator({
   section,
+  travel,
   aspectRef,
   armed,
   progressRef,
@@ -27,7 +28,7 @@ export default function SectionIndicator({
   const presenceRef = useRef(0)
 
   const [dx, dy] = DIRECTIONS[section.dir] ?? DIRECTIONS.right
-  const along = section.length + 130
+  const along = travel + 130
   const across = 150
   const horizontal = Math.abs(dx) > 0
 
@@ -76,52 +77,79 @@ export default function SectionIndicator({
     return () => cancelAnimationFrame(raf)
   }, [aspectRef, armed, dragging, progressRef, section])
 
-  return (
-    <div className="pointer-events-none fixed inset-0 z-30">
-      <Mark ref={markRef} dir={section.dir} length={section.length} />
+  const live = armed && !committed
 
+  return (
+    <>
+      {/*
+       * With a mouse, the whole frame is the handle.
+       *
+       * Hunting for a band of pixels before anything responds is the wrong
+       * feeling for a site that is entirely one gesture — the ring says which
+       * way and how far, and the hand can start anywhere. Touch is excluded on
+       * purpose: there a drag is also a scroll, and only the mark's own region
+       * may take it, or there is no way left to leave the section.
+       *
+       * It sits below the header and the product card, so the sound switch and
+       * the buttons stay reachable while a section is armed.
+       */}
       <div
-        ref={hitRef}
-        {...handlers}
-        role="button"
-        data-claims-touch={armed && !committed}
-        tabIndex={armed ? 0 : -1}
-        aria-label={`${section.actionLabel}. Drag ${section.dir}, or press space.`}
-        aria-pressed={committed}
-        className="absolute cursor-grab rounded-full focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-8 focus-visible:outline-gold-400 active:cursor-grabbing"
-        style={{
-          width: horizontal ? along : across,
-          height: horizontal ? across : along,
-          transform: `translate(-50%, -50%) translate(${(dx * section.length) / 2}px, ${
-            (dy * section.length) / 2
-          }px)`,
-          /*
-           * Only ever claim the axis the action actually needs.
-           *
-           * While the action is outstanding the mark owns the gesture
-           * outright — the section is driven, not scrolled, so there is no
-           * native panning to preserve. The moment the action is done the
-           * surface hands the touch back: the next thing anyone wants to do is
-           * scroll on, and a spent control has no business swallowing that.
-           */
-          touchAction: committed ? 'auto' : 'none',
-          /*
-           * Grabbable the instant the section arms, not once a fade finishes.
-           * This used to follow the eased presence, which is driven by
-           * requestAnimationFrame — on a device where frames are scarce the
-           * mark would be plainly visible and still refuse the hand.
-           */
-          pointerEvents: armed ? 'auto' : 'none',
-          opacity: 0,
+        className="fixed inset-0 z-[15]"
+        style={{ pointerEvents: live ? 'auto' : 'none', touchAction: 'auto', cursor: 'grab' }}
+        onPointerDown={(e) => {
+          if (e.pointerType === 'touch') return
+          handlers.onPointerDown(e)
         }}
-      >
-        <span
-          ref={copyRef}
-          className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap pt-4 font-sans text-[0.58rem] font-light uppercase tracking-widest2 text-gold-300/90"
+        onPointerMove={handlers.onPointerMove}
+        onPointerUp={handlers.onPointerUp}
+        onPointerCancel={handlers.onPointerCancel}
+      />
+
+      <div className="pointer-events-none fixed inset-0 z-30">
+        <Mark ref={markRef} dir={section.dir} length={travel} />
+
+        <div
+          ref={hitRef}
+          {...handlers}
+          role="button"
+          data-claims-touch={armed && !committed}
+          tabIndex={armed ? 0 : -1}
+          aria-label={`${section.actionLabel}. Drag ${section.dir}, or press space.`}
+          aria-pressed={committed}
+          className="absolute cursor-grab rounded-full focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-8 focus-visible:outline-gold-400 active:cursor-grabbing"
+          style={{
+            width: horizontal ? along : across,
+            height: horizontal ? across : along,
+            transform: `translate(-50%, -50%) translate(${(dx * travel) / 2}px, ${
+              (dy * travel) / 2
+            }px)`,
+            /*
+             * On touch, only ever claim the axis the action actually needs.
+             * While the action is outstanding the mark owns the gesture
+             * outright — the section is driven, not scrolled, so there is no
+             * native panning to preserve. The moment the action is done the
+             * surface hands the touch back: the next thing anyone wants to do
+             * is scroll on, and a spent control has no business swallowing it.
+             */
+            touchAction: committed ? 'auto' : 'none',
+            /*
+             * Grabbable the instant the section arms, not once a fade finishes.
+             * This used to follow the eased presence, which is driven by
+             * requestAnimationFrame — on a device where frames are scarce the
+             * mark would be plainly visible and still refuse the hand.
+             */
+            pointerEvents: armed ? 'auto' : 'none',
+            opacity: 0,
+          }}
         >
-          {section.actionLabel}
-        </span>
+          <span
+            ref={copyRef}
+            className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap pt-4 font-sans text-[0.58rem] font-light uppercase tracking-widest2 text-gold-300/90"
+          >
+            {section.actionLabel}
+          </span>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

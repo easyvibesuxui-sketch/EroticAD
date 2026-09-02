@@ -16,6 +16,7 @@ import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
 import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
+import { useMarkTravel } from './hooks/useMarkTravel.js'
 import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
@@ -63,9 +64,11 @@ export default function App() {
     })
   }, [section])
 
+  const travel = useMarkTravel(section, aspectRef)
+
   const drag = useDirectionalDrag({
     dir: section.dir,
-    length: section.length,
+    length: travel,
     enabled: transport === 'armed',
     onCommit: handleCommit,
   })
@@ -170,6 +173,7 @@ export default function App() {
 
           <SectionIndicator
             section={section}
+            travel={travel}
             aspectRef={aspectRef}
             armed={transport === 'armed'}
             progressRef={drag.progressRef}
