@@ -59,62 +59,60 @@ const ScrollTrack = forwardRef(function ScrollTrack({ active, committedIds }, re
                 ...ON_FILM,
               }}
             >
-              {/* the film's line — retires once the piece is off */}
-              <div
-                className="transition-all duration-700 ease-silk"
-                style={{
-                  opacity: done ? 0 : 1,
-                  transform: `translateY(${done ? -10 : 0}px)`,
-                  position: done ? 'absolute' : 'relative',
-                }}
+              {/*
+                * The section is a product section from the moment you arrive:
+                * the piece is named and priced before anything is asked of you.
+                * A shop that withholds what it is selling until you have earned
+                * it is a puzzle, not a shop.
+                */}
+              <p
+                className="font-sans text-[0.55rem] font-normal uppercase tracking-widest3 text-gold-200"
+                style={{ textShadow: '0 1px 3px rgba(4,2,3,0.95), 0 2px 16px rgba(4,2,3,0.9)' }}
               >
-                <p className="font-sans text-[0.55rem] font-light uppercase tracking-widest3 text-gold-400/80">
-                  {section.title}
-                </p>
-                <p className="mt-4 font-serif text-2xl font-light italic leading-snug text-blush sm:text-[1.75rem]">
-                  {section.caption}
-                </p>
-              </div>
+                {section.title}
+                <span className="mx-2 text-gold-400/60">·</span>
+                Collection {BRAND.collection}
+              </p>
 
-              {/* and then the piece it was */}
+              {product && (
+                <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                  <h2 className="font-serif text-3xl font-light leading-none text-blush sm:text-4xl">
+                    {product.name}
+                  </h2>
+                  <span className="font-serif text-xl font-light tabular-nums text-gold-200">
+                    {price(product.price)}
+                  </span>
+                </div>
+              )}
+
+              <p className="mt-3 font-serif text-lg font-light italic leading-snug text-blush/75 sm:text-xl">
+                {section.caption}
+              </p>
+
+              {/* what the action earns: the making of it, and the way to buy */}
               {product && (
                 <div
                   className="transition-all duration-[1100ms] ease-silk"
                   style={{
                     opacity: done ? 1 : 0,
-                    transform: `translateY(${done ? 0 : 14}px)`,
-                    filter: done ? 'blur(0)' : 'blur(6px)',
+                    transform: `translateY(${done ? 0 : 12}px)`,
+                    filter: done ? 'blur(0)' : 'blur(5px)',
                     pointerEvents: done && isActive ? 'auto' : 'none',
                   }}
                 >
-                  <p
-                    className="font-sans text-[0.55rem] font-normal uppercase tracking-widest3 text-gold-200"
-                    style={{ textShadow: '0 1px 3px rgba(4,2,3,0.95), 0 2px 16px rgba(4,2,3,0.9)' }}
-                  >
-                    {BRAND.season}
-                  </p>
-                  <h2 className="mt-4 font-serif text-3xl font-light leading-none text-blush sm:text-4xl">
-                    {product.name}
-                  </h2>
-                  <p className="mt-3 font-sans text-[0.62rem] font-light leading-relaxed tracking-[0.14em] text-blush/70">
+                  <p className="mt-5 font-sans text-[0.62rem] font-light leading-relaxed tracking-[0.14em] text-blush/70">
                     {product.note}
                   </p>
                   <p className="mt-1.5 font-sans text-[0.56rem] font-light uppercase tracking-widest2 text-gold-400/75">
                     {product.edition}
                   </p>
-
-                  <div className="mt-6 flex items-center gap-6">
-                    <button
-                      type="button"
-                      data-interactive
-                      className="border border-gold-400/50 bg-void/25 px-8 py-3 font-sans text-[0.62rem] font-light uppercase tracking-widest2 text-blush backdrop-blur-[2px] transition-colors duration-500 ease-silk hover:border-gold-300 hover:bg-crimson-700/30 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-gold-400"
-                    >
-                      Add to bag
-                    </button>
-                    <span className="font-serif text-xl font-light tabular-nums text-gold-200">
-                      {price(product.price)}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    data-interactive
+                    className="mt-5 border border-gold-400/50 bg-void/25 px-8 py-3 font-sans text-[0.62rem] font-light uppercase tracking-widest2 text-blush backdrop-blur-[2px] transition-colors duration-500 ease-silk hover:border-gold-300 hover:bg-crimson-700/30 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-gold-400"
+                  >
+                    Add to bag
+                  </button>
                 </div>
               )}
             </div>
