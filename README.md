@@ -222,10 +222,17 @@ haze is a held breath and the action lets it out. The mark's position is fed to
 One `BiquadFilterNode` carries the idea: the bed lives behind it, and the
 action opens it from 180 Hz to 18 kHz on an exponential curve while the
 resonance falls from Q 7.5 to 0.7. The heartbeat bus runs off the same beat
-counter the shader reads and recedes as the action completes; the breath layer
-sits *outside* the filter and comes up on `progress^1.6`. Committing rings a
-three-partial chime routed around the filter — the one sound allowed to cut
+counter the shader reads and recedes as the action completes. Committing rings
+a three-partial chime routed around the filter — the one sound allowed to cut
 through.
+
+The **second audio** (`public/media/after.mp3`) belongs to the end of a section
+rather than to the drag. It sits outside the filter, silent, until the mark
+lands past the threshold; then `AudioEngine.after()` plays it once, in the
+clear. Dragging the piece back on calls `stopAfter()` and it goes with the
+action — nothing on this page is allowed to be the one thing that cannot be
+undone. Leaving the section stops it too. With no file, the engine breathes one
+itself: a noise band swept 700 → 1250 → 620 Hz over four seconds.
 
 The `AudioContext` is opened synchronously inside the gate click, before any
 `await`: waiting for media first spends the user activation and leaves the
@@ -246,7 +253,7 @@ the mechanic is never a dead screen.
 
 **In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
 section one as a pair — `01a-approach.mp4` (7.63s) and `01b-action.mp4` (2.42s,
-all-intra). Still wanted: nine more pairs and `breath.mp3`.
+all-intra). Still wanted: nine more pairs and `after.mp3`.
 
 Each section is delivered as two files, split where the action begins: one that
 plays itself and one the hand moves. That split is the entire timing model —

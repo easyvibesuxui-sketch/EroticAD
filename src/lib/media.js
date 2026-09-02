@@ -5,7 +5,7 @@ import { asset } from './asset.js'
  *
  * Every entry is a list of candidates tried in order. Local files win, so the
  * production drop is: put the real cut at `public/media/scene.mp4`, the track
- * at `public/media/track.mp3`, the breath layer at `public/media/breath.mp3`,
+ * at `public/media/track.mp3`, the second audio at `public/media/after.mp3`,
  * and change nothing else.
  *
  * The remote entries are free stock stand-ins for development only. They must
@@ -40,11 +40,14 @@ export const MEDIA = {
     'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
     'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   ],
-  breath: [
-    ...(injected.breath || []),
-    asset('/media/breath.mp3'),
-    'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
-  ],
+  /*
+   * The second audio: the one that belongs to the end of a section, after the
+   * mark has been drawn all the way. It is a cue, not a bed — so unlike the
+   * track it gets no stock stand-in, because a borrowed song firing the moment
+   * a piece comes off would be worse than the breath the engine synthesises
+   * for itself when this file is absent.
+   */
+  after: [...(injected.after || []), asset('/media/after.mp3')],
 }
 
 /** How long to wait on a candidate before writing it off. */

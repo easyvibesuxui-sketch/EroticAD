@@ -56,6 +56,9 @@ export default function App() {
   const handleCommit = useCallback(() => {
     sparkRef.current = { u: section.u, v: section.v, at: performance.now() }
     audioRef.current?.chime()
+    // The second audio waits for exactly this: the mark drawn all the way, at
+    // the end of the section. Not during the drag — after it.
+    audioRef.current?.after()
     if (navigator.vibrate) navigator.vibrate(18)
     setCommittedIds((prev) => {
       if (prev.has(section.id)) return prev
@@ -65,6 +68,13 @@ export default function App() {
     })
   }, [section])
 
+  // Drag the piece back on and the sound goes with it. The rail keeps its
+  // gold — that is a record of what you did, not a description of the frame —
+  // but nothing is left playing over a section that has been put back.
+  const handleUndo = useCallback(() => {
+    audioRef.current?.stopAfter()
+  }, [])
+
   const travel = useMarkTravel(section, aspectRef)
 
   const drag = useDirectionalDrag({
@@ -72,6 +82,7 @@ export default function App() {
     length: travel,
     enabled: transport === 'armed',
     onCommit: handleCommit,
+    onUndo: handleUndo,
   })
 
   // A new section is a new action: whatever was wound on the last one goes
@@ -82,6 +93,7 @@ export default function App() {
   const { reset } = drag
   useEffect(() => {
     reset()
+    audioRef.current?.stopAfter()
     setTransport('playing')
   }, [active, reset])
 
@@ -95,10 +107,10 @@ export default function App() {
 
     setPhase('booting')
 
-    const [video, music, breathTrack] = await Promise.all([
+    const [video, music, afterTrack] = await Promise.all([
       loadVideo(MEDIA.video),
       loadAudio(MEDIA.music),
-      loadAudio(MEDIA.breath),
+      loadAudio(MEDIA.after),
     ])
 
     // Sections carry their own clips; anything not yet delivered falls back to
@@ -111,9 +123,7 @@ export default function App() {
 
     setSource({ playhead, sources, standIn })
 
-    const breath =
-      breathTrack && music && breathTrack.currentSrc === music.currentSrc ? null : breathTrack
-    await engine.start({ musicEl: music, breathEl: breath })
+    await engine.start({ musicEl: music, afterEl: afterTrack })
     setPhase('live')
   }, [phase])
 

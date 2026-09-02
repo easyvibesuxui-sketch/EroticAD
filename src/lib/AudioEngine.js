@@ -6,8 +6,9 @@ import { bpmFor } from './pulse.js'
  *  Covered:  everything is behind the glass with the video. One low-pass, wide
  *            open resonance, almost no top end — the track arrives as pressure
  *            in the chest and a pulse in the ears.
- *  Revealed: the filter opens all the way, the heartbeat backs off, and the
- *            breath layer comes up close to the mic.
+ *  Revealed: the filter opens all the way and the heartbeat backs off.
+ *  After:    the piece is off. The second audio is held back until then and
+ *            plays once, in the clear, outside the glass.
  *
  *  If no track loads, the bed is synthesised in-graph so the mechanic is never
  *  silent. Either way the tempo is driven by the same heart the shader is.
@@ -38,9 +39,11 @@ export class AudioEngine {
     this.ctx = null
     this.ready = false
     this.usingSynthBed = true
-    this.usingSynthBreath = true
+    this.usingSynthAfter = true
 
     this.muted = false
+    this.afterEl = null
+    this.afterStopTimer = 0
     this.beat = 0
     this.lastBeatIndex = -1
     this.elements = []
@@ -62,7 +65,7 @@ export class AudioEngine {
   }
 
   /** Build the graph once the media elements have resolved. */
-  async start({ musicEl = null, breathEl = null } = {}) {
+  async start({ musicEl = null, afterEl = null } = {}) {
     if (this.ready) return
     const ctx = this.prime()
     if (!ctx) return
@@ -111,27 +114,40 @@ export class AudioEngine {
     }
     if (this.usingSynthBed) this.#buildSynthBed()
 
-    // --- breath: sits outside the low-pass, gated by the reveal ---------
-    const breathGain = ctx.createGain()
-    breathGain.gain.value = 0.0001
-    breathGain.connect(master)
-    this.breathGain = breathGain
+    /*
+     * The second audio.
+     *
+     * It is not a bed and it is not gated by how far the hand has got: it is
+     * what the section is for, and it waits for the action to be carried
+     * through. `after()` fires it; dragging the piece back stops it, because
+     * on this site everything the hand does is reversible.
+     *
+     * Wired outside the low-pass, so when it comes it is unmistakably in the
+     * room rather than behind the glass with the track.
+     */
+    const afterGain = ctx.createGain()
+    afterGain.gain.value = 0.0001
+    afterGain.connect(master)
+    this.afterGain = afterGain
 
-    if (breathEl) {
+    if (afterEl) {
       try {
-        const node = ctx.createMediaElementSource(breathEl)
+        const node = ctx.createMediaElementSource(afterEl)
         const air = ctx.createBiquadFilter()
         air.type = 'highpass'
         air.frequency.value = 320
-        node.connect(air).connect(breathGain)
-        await breathEl.play().catch(() => {})
-        this.elements.push(breathEl)
-        this.usingSynthBreath = false
+        node.connect(air).connect(afterGain)
+        // Loaded and silent. Nothing plays until the action asks for it.
+        afterEl.loop = false
+        afterEl.pause()
+        this.afterEl = afterEl
+        this.elements.push(afterEl)
+        this.usingSynthAfter = false
       } catch {
-        this.usingSynthBreath = true
+        this.usingSynthAfter = true
       }
     }
-    if (this.usingSynthBreath) this.#buildSynthBreath()
+    if (this.usingSynthAfter) this.#buildSynthAfter()
 
     this.#buildHeart()
     this.#buildShuttle()
@@ -214,9 +230,14 @@ export class AudioEngine {
     this.noise = this.#noiseBuffer()
   }
 
-  /** Air moving over a mic, rising and falling. */
-  #buildSynthBreath() {
-    const { ctx, breathGain } = this
+  /**
+   * What plays after the action when no file has been dropped in: air moving
+   * over a mic, one breath taken and let go. Silent until `after()` shapes it,
+   * so the site is never mute at the moment that matters and never hums
+   * underneath the ones that do not.
+   */
+  #buildSynthAfter() {
+    const { ctx, afterGain } = this
     if (!this.noise) this.noise = this.#noiseBuffer()
 
     const src = ctx.createBufferSource()
@@ -231,12 +252,12 @@ export class AudioEngine {
     const shape = ctx.createGain()
     shape.gain.value = 0.0001
 
-    src.connect(band).connect(shape).connect(breathGain)
+    src.connect(band).connect(shape).connect(afterGain)
     src.start()
 
-    this.breathSrc = src
-    this.breathBand = band
-    this.breathShape = shape
+    this.afterSrc = src
+    this.afterBand = band
+    this.afterShape = shape
     this.voices.push(src)
   }
 
@@ -295,6 +316,80 @@ export class AudioEngine {
       osc.connect(env).connect(master)
       osc.start(now + delay)
       osc.stop(now + delay + 1.5)
+    }
+  }
+
+  /**
+   * The second audio, at the end of a section — the piece is off, so play it.
+   *
+   * Called on the commit, not during the drag: the whole point is that it is
+   * deferred until the action has actually been carried through. Retriggering
+   * is deliberate — undo the action and do it again and you hear it again,
+   * from the top, because on this site nothing that happened is permanent.
+   */
+  after(strength = 1) {
+    if (!this.ready || !this.ctx) return
+    const { ctx, afterGain } = this
+    const now = ctx.currentTime
+
+    const g = afterGain.gain
+    g.cancelScheduledValues(now)
+    g.setValueAtTime(Math.max(g.value, 0.0001), now)
+    g.exponentialRampToValueAtTime(Math.max(0.9 * strength, 0.001), now + 0.18)
+
+    if (this.afterEl) {
+      try {
+        this.afterEl.currentTime = 0
+      } catch {
+        /* not seekable yet; it will start wherever it can */
+      }
+      this.afterEl.play().catch(() => {})
+      return
+    }
+
+    // No file: breathe one. In, held, out — about four seconds all told.
+    if (!this.afterShape) return
+    const env = this.afterShape.gain
+    env.cancelScheduledValues(now)
+    env.setValueAtTime(Math.max(env.value, 0.0001), now)
+    env.exponentialRampToValueAtTime(0.26 * strength, now + 0.7)
+    env.exponentialRampToValueAtTime(0.14 * strength, now + 1.5)
+    env.exponentialRampToValueAtTime(0.0001, now + 4.0)
+
+    const f = this.afterBand.frequency
+    f.cancelScheduledValues(now)
+    f.setValueAtTime(700, now)
+    f.linearRampToValueAtTime(1250, now + 0.7)
+    f.linearRampToValueAtTime(620, now + 4.0)
+  }
+
+  /**
+   * Take it back. Dragging the piece back on un-does the action, and a sound
+   * still playing over a robe that has closed again would be the one thing on
+   * the page that refuses to be undone.
+   */
+  stopAfter() {
+    if (!this.ready || !this.ctx) return
+    const { ctx, afterGain } = this
+    const now = ctx.currentTime
+
+    const g = afterGain.gain
+    g.cancelScheduledValues(now)
+    g.setValueAtTime(Math.max(g.value, 0.0001), now)
+    g.exponentialRampToValueAtTime(0.0001, now + 0.3)
+
+    if (this.afterShape) {
+      const env = this.afterShape.gain
+      env.cancelScheduledValues(now)
+      env.setValueAtTime(Math.max(env.value, 0.0001), now)
+      env.exponentialRampToValueAtTime(0.0001, now + 0.3)
+    }
+
+    // Let the fade finish before the element stops, or the cut is audible.
+    if (this.afterEl) {
+      const el = this.afterEl
+      clearTimeout(this.afterStopTimer)
+      this.afterStopTimer = setTimeout(() => el.pause(), 340)
     }
   }
 
@@ -372,14 +467,12 @@ export class AudioEngine {
     // yourself. It sits under a real track, not over it.
     this.heartBus.gain.value = lerp(HEART_RESTING, HEART_OPEN, reveal)
 
-    // Breath comes forward.
-    const target = 0.0001 + Math.pow(reveal, 1.6) * 0.5
-    this.breathGain.gain.value = lerp(this.breathGain.gain.value, target, Math.min(1, dt * 4))
-    if (this.breathShape) {
-      const env = 0.0001 + breathV * breathV * 0.22 * Math.pow(reveal, 1.2)
-      this.breathShape.gain.value = env
-      this.breathBand.frequency.value = lerp(700, 1250, breathV)
-    }
+    /*
+     * The second audio is not touched here. It belongs to the end of the
+     * section, not to the drag — `after()` starts it and `stopAfter()` takes
+     * it away, both of them scheduled on the graph's own clock. `breathV`
+     * still drives the picture; it no longer drives the sound.
+     */
 
     // Tape over a ducked bed.
     const mag = Math.min(1, Math.abs(shuttle))
@@ -429,6 +522,7 @@ export class AudioEngine {
   }
 
   dispose() {
+    clearTimeout(this.afterStopTimer)
     for (const el of this.elements) {
       try {
         el.pause()
