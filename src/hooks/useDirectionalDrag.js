@@ -17,7 +17,13 @@ import { DIRECTIONS } from '../lib/layout.js'
  * holding it. The piece counts as undone once the drag has carried it past the
  * threshold, and counts as done up again if it is dragged back below.
  */
-export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true, onCommit }) {
+export function useDirectionalDrag({
+  dir = 'right',
+  length = 96,
+  enabled = true,
+  onCommit,
+  onUndo,
+}) {
   const [dragging, setDragging] = useState(false)
   const [committed, setCommitted] = useState(false)
 
@@ -41,7 +47,11 @@ export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true,
     setCommitted(false)
   }, [])
 
-  /** Crossing the threshold either way is what marks the piece undone. */
+  /**
+   * Crossing the threshold either way is what marks the piece undone. Both
+   * crossings are announced: what the commit sets off, the crossing back has
+   * to be able to take away.
+   */
   const mark = useCallback(
     (value) => {
       const past = value >= COMMIT_THRESHOLD
@@ -49,8 +59,9 @@ export function useDirectionalDrag({ dir = 'right', length = 96, enabled = true,
       committedRef.current = past
       setCommitted(past)
       if (past) onCommit?.()
+      else onUndo?.()
     },
-    [onCommit],
+    [onCommit, onUndo],
   )
 
   const onPointerDown = useCallback(

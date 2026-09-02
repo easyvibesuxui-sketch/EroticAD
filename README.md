@@ -102,7 +102,7 @@ src/
     filmSources.js         which clip a section plays, and what it falls back to
     layout.js              cover-fit mapping shared by the shader and the marks
     pulse.js               heartbeat, respiration
-    AudioEngine.js         the track, looping — the only sound on the site
+    AudioEngine.js         the filter graph, and a synth bed when there is no track
     media.js / loadMedia.js  source candidates, first-that-decodes
     standin.js             procedural footage for when nothing loads
   hooks/
@@ -219,20 +219,28 @@ haze is a held breath and the action lets it out. The mark's position is fed to
 
 ## The audio
 
-One track, looping, and nothing else. `AudioEngine` is a player rather than an
-engine: the element loops, a single gain ramps it in and mutes it without a
-click, and nothing is processed on the way through. `update()` is still called
-every frame by the film's own loop and deliberately does nothing — the sound no
-longer answers to the picture.
+One `BiquadFilterNode` carries the idea: the bed lives behind it, and the
+action opens it from 180 Hz to 18 kHz on an exponential curve while the
+resonance falls from Q 7.5 to 0.7. The heartbeat bus runs off the same beat
+counter the shader reads and recedes as the action completes. Committing rings
+a three-partial chime routed around the filter — the one sound allowed to cut
+through.
+
+The **second audio** (`public/media/after.mp3`) belongs to the end of a section
+rather than to the drag. It sits outside the filter, silent, until the mark
+lands past the threshold; then `AudioEngine.after()` plays it once, in the
+clear. Dragging the piece back on calls `stopAfter()` and it goes with the
+action — nothing on this page is allowed to be the one thing that cannot be
+undone. Leaving the section stops it too. With no file, the engine breathes one
+itself: a noise band swept 700 → 1250 → 620 Hz over four seconds.
 
 The `AudioContext` is opened synchronously inside the gate click, before any
 `await`: waiting for media first spends the user activation and leaves the
-context suspended on Safari. If the routing is refused — almost always CORS on
-the element — the element plays on its own, which costs the ramped mute and
-keeps the track.
+context suspended on Safari.
 
-There is no synthesised fallback. With no `track.mp3` the site is silent, which
-is what "only this audio, nothing else" asks for.
+With no track, the engine synthesises its own — sub, an Am9 pad with slow
+per-voice detune drift, and a bass note on each beat, all behind the same
+filter.
 
 ---
 
@@ -245,7 +253,7 @@ the mechanic is never a dead screen.
 
 **In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
 section one as a pair — `01a-approach.mp4` (7.63s) and `01b-action.mp4` (2.42s,
-all-intra). Still wanted: nine more pairs.
+all-intra). Still wanted: nine more pairs and `after.mp3`.
 
 Each section is delivered as two files, split where the action begins: one that
 plays itself and one the hand moves. That split is the entire timing model —

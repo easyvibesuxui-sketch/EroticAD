@@ -1,11 +1,12 @@
 # Drop your assets here
 
-Two filenames are picked up automatically:
+Three filenames are picked up automatically, ahead of every remote fallback:
 
 | File          | What it is                                                     |
 | ------------- | -------------------------------------------------------------- |
 | `scene.mp4`   | The film. H.264, muted track, loopable. 1080p is plenty.        |
-| `track.mp3`   | The only sound on the site. Loops under everything, start to end. |
+| `track.mp3`   | The bed — deep, slow, bass-forward. Loops seamlessly.           |
+| `after.mp3`   | The second audio. Played once at the end of a section, after the mark has been drawn all the way. A cue, not a loop — a few seconds is right. |
 
 Nothing else needs to change: `src/lib/media.js` already tries these first.
 

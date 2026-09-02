@@ -4,8 +4,9 @@ import { asset } from './asset.js'
  * Media sources.
  *
  * Every entry is a list of candidates tried in order. Local files win, so the
- * production drop is: put the real cut at `public/media/scene.mp4` and the
- * track at `public/media/track.mp3`, and change nothing else.
+ * production drop is: put the real cut at `public/media/scene.mp4`, the track
+ * at `public/media/track.mp3`, the second audio at `public/media/after.mp3`,
+ * and change nothing else.
  *
  * The remote entries are free stock stand-ins for development only. They must
  * be served with CORS headers (`Access-Control-Allow-Origin`), because a
@@ -33,12 +34,20 @@ export const MEDIA = {
     'https://mdn.github.io/shared-assets/videos/flower.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
   ],
+  music: [
+    ...(injected.music || []),
+    asset('/media/track.mp3'),
+    'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+  ],
   /*
-   * The only sound on the site: one track, looping, under everything. It gets
-   * no stock stand-in — a borrowed song is not this one, and "only this audio"
-   * is better served by silence than by a substitute.
+   * The second audio: the one that belongs to the end of a section, after the
+   * mark has been drawn all the way. It is a cue, not a bed — so unlike the
+   * track it gets no stock stand-in, because a borrowed song firing the moment
+   * a piece comes off would be worse than the breath the engine synthesises
+   * for itself when this file is absent.
    */
-  music: [...(injected.music || []), asset('/media/track.mp3')],
+  after: [...(injected.after || []), asset('/media/after.mp3')],
 }
 
 /** How long to wait on a candidate before writing it off. */
