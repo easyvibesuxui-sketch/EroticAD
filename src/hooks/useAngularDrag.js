@@ -30,7 +30,16 @@ const EXIT_BACK = -0.06
 const FULL = 0.995
 
 /** Nearer the centre than this, the angle is noise rather than a gesture. */
-const DEAD_RADIUS = 26
+const DEAD_RADIUS = 22
+
+/**
+ * The most of the clip one pointer event is allowed to move.
+ *
+ * A guard, not a feel: a pointer that teleports — a touch that lifts and lands
+ * elsewhere, a frame dropped under load — would otherwise hand over a single
+ * enormous delta and tear the film across it.
+ */
+const MAX_STEP = 0.15
 
 const TAU = Math.PI * 2
 
@@ -60,8 +69,10 @@ export function useAngularDrag({
   const spin = step?.spin ?? 1
   const sweepRef = useRef(sweep)
   const spinRef = useRef(spin)
+  const radiusRef = useRef(radius)
   sweepRef.current = sweep
   spinRef.current = spin
+  radiusRef.current = radius
 
   const reset = useCallback(
     (to = 0) => {
@@ -89,14 +100,14 @@ export function useAngularDrag({
     [onCommit, onUndo],
   )
 
-  const angleAt = useCallback(
+  /** Where the pointer stands relative to the centre, in polar. */
+  const polarAt = useCallback(
     (e) => {
       const c = centreRef.current
       if (!c) return null
       const dx = e.clientX - c.x
       const dy = e.clientY - c.y
-      if (Math.hypot(dx, dy) < DEAD_RADIUS) return null
-      return Math.atan2(dy, dx)
+      return { a: Math.atan2(dy, dx), r: Math.hypot(dx, dy) }
     },
     [centreRef],
   )
@@ -104,36 +115,57 @@ export function useAngularDrag({
   const onPointerDown = useCallback(
     (e) => {
       if (!enabled) return
-      const a = angleAt(e)
-      if (a === null) return
+      const p = polarAt(e)
+      if (!p) return
       e.preventDefault()
       e.currentTarget.setPointerCapture?.(e.pointerId)
-      lastAngleRef.current = a
+      lastAngleRef.current = p.a
       woundRef.current = progressRef.current
       draggingRef.current = true
       setDragging(true)
     },
-    [angleAt, enabled, progressRef],
+    [enabled, polarAt, progressRef],
   )
 
   const onPointerMove = useCallback(
     (e) => {
       if (!draggingRef.current) return
-      const a = angleAt(e)
-      if (a === null) return
+      const p = polarAt(e)
+      if (!p) return
 
       // Unwrap: the shortest way round from the last reading is the way the
       // hand actually went. Without this, crossing due-west reads as a jump of
-      // a full turn in the wrong direction.
-      let delta = a - lastAngleRef.current
+      // a full turn in the wrong direction. The reading is kept even inside
+      // the dead zone, so coming back out of it is a small delta and not the
+      // whole angle the hand swept while it was ignored.
+      let delta = p.a - lastAngleRef.current
       if (delta > Math.PI) delta -= TAU
       else if (delta < -Math.PI) delta += TAU
-      lastAngleRef.current = a
+      lastAngleRef.current = p.a
+      if (p.r < DEAD_RADIUS) return
 
-      const next = Math.max(
-        -UNDERSHOOT,
-        Math.min(1, woundRef.current + (delta * spinRef.current) / sweepRef.current),
-      )
+      /*
+       * Pixels, not degrees.
+       *
+       * The angle a hand sweeps per pixel moved depends entirely on how far it
+       * is from the centre: at the rim a hundred pixels is a modest turn, and
+       * near the middle the same hundred pixels is most of a revolution. Read
+       * raw, that made the film freeze while the hand was out wide and lurch
+       * several frames at a time as it passed the middle — a straight drag
+       * across the guide moved the picture on two frames in five, in steps of
+       * up to a seventh of a second.
+       *
+       * Scaling the angle by how far out the hand is cancels it exactly: a
+       * tangential pixel is worth the same amount of film wherever it is
+       * travelled. Beyond the rim the true angle stands, so a wide grip is a
+       * fine adjustment rather than a coarse one — which is how every physical
+       * dial behaves.
+       */
+      const gain = Math.min(1, p.r / Math.max(radiusRef.current, 1))
+      const raw = (delta * spinRef.current * gain) / sweepRef.current
+      const stepped = Math.max(-MAX_STEP, Math.min(MAX_STEP, raw))
+
+      const next = Math.max(-UNDERSHOOT, Math.min(1, woundRef.current + stepped))
       woundRef.current = next
 
       const shown = Math.max(0, next)
@@ -144,7 +176,7 @@ export function useAngularDrag({
       if (next >= FULL) onFull?.()
       else if (next <= EXIT_BACK) onExitBack?.()
     },
-    [angleAt, mark, onExitBack, onFull, progressRef],
+    [mark, onExitBack, onFull, polarAt, progressRef],
   )
 
   const onPointerUp = useCallback((e) => {

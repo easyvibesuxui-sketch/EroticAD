@@ -103,9 +103,18 @@ export default function App() {
   /** Wound all the way: the next clip takes the film, opened at its start. */
   const handleFull = useCallback(() => {
     if (isLastStep) return
+    /*
+     * Never cut to a clip that has not buffered its first frames. The film
+     * would fall back to the approach's last frame for as long as it took to
+     * arrive, which reads as the picture jumping backwards under the hand. The
+     * hand simply stays at the end of this clip until the next one is there —
+     * and `onFull` fires on every move once it is wound, so the handover
+     * happens the moment it can.
+     */
+    if (!source?.sources.ready(active, `step:${stepIndex + 1}`)) return
     enterAtRef.current = 0
     setStep((n) => n + 1)
-  }, [isLastStep])
+  }, [active, isLastStep, source, stepIndex])
 
   /**
    * Wound back past the start: the previous clip takes the film again, fully
