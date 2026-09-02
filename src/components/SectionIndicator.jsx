@@ -61,7 +61,6 @@ export default function SectionIndicator({
       if (hitRef.current) {
         hitRef.current.style.left = `${p.x}px`
         hitRef.current.style.top = `${p.y}px`
-        hitRef.current.style.pointerEvents = presence > 0.6 ? 'auto' : 'none'
         hitRef.current.style.opacity = String(presence)
       }
       if (copyRef.current) {
@@ -106,6 +105,13 @@ export default function SectionIndicator({
            * scroll on, and a spent control has no business swallowing that.
            */
           touchAction: committed ? 'auto' : 'none',
+          /*
+           * Grabbable the instant the section arms, not once a fade finishes.
+           * This used to follow the eased presence, which is driven by
+           * requestAnimationFrame — on a device where frames are scarce the
+           * mark would be plainly visible and still refuse the hand.
+           */
+          pointerEvents: armed ? 'auto' : 'none',
           opacity: 0,
         }}
       >
