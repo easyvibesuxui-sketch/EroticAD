@@ -21,13 +21,19 @@ export function useDirectionalDrag({
   dir = 'right',
   length = 96,
   enabled = true,
+  progressRef: externalProgress,
   onCommit,
   onUndo,
+  onFull,
 }) {
   const [dragging, setDragging] = useState(false)
   const [committed, setCommitted] = useState(false)
 
-  const progressRef = useRef(0)
+  // The page keeps one progress ref and hands it to whichever control is on
+  // this step, so the render loop reads the same value whatever shape the guide
+  // happens to be.
+  const ownProgress = useRef(0)
+  const progressRef = externalProgress ?? ownProgress
   const targetRef = useRef(0)
   const anchorRef = useRef({ x: 0, y: 0 })
   const draggingRef = useRef(false)
@@ -45,7 +51,7 @@ export function useDirectionalDrag({
     committedRef.current = false
     setDragging(false)
     setCommitted(false)
-  }, [])
+  }, [progressRef])
 
   /**
    * Crossing the threshold either way is what marks the piece undone. Both
@@ -80,24 +86,33 @@ export function useDirectionalDrag({
     [enabled],
   )
 
-  const onPointerMove = useCallback((e) => {
-    if (!draggingRef.current) return
-    const [dx, dy] = dirRef.current
-    const along = (e.clientX - anchorRef.current.x) * dx + (e.clientY - anchorRef.current.y) * dy
-    const next = Math.max(0, Math.min(1, along / lengthRef.current))
-    progressRef.current = next
-    targetRef.current = next
-    mark(next)
-  }, [mark])
+  const onPointerMove = useCallback(
+    (e) => {
+      if (!draggingRef.current) return
+      const [dx, dy] = dirRef.current
+      const along = (e.clientX - anchorRef.current.x) * dx + (e.clientY - anchorRef.current.y) * dy
+      const next = Math.max(0, Math.min(1, along / lengthRef.current))
+      progressRef.current = next
+      targetRef.current = next
+      mark(next)
+      // Wound all the way to the terminus. On a section built from more than
+      // one clip this is where the next one takes the film.
+      if (next >= 0.995) onFull?.()
+    },
+    [mark, onFull, progressRef],
+  )
 
-  const onPointerUp = useCallback((e) => {
-    if (!draggingRef.current) return
-    e.currentTarget.releasePointerCapture?.(e.pointerId)
-    // Nothing moves. The frame the hand let go on is the frame that stays.
-    draggingRef.current = false
-    targetRef.current = progressRef.current
-    setDragging(false)
-  }, [])
+  const onPointerUp = useCallback(
+    (e) => {
+      if (!draggingRef.current) return
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+      // Nothing moves. The frame the hand let go on is the frame that stays.
+      draggingRef.current = false
+      targetRef.current = progressRef.current
+      setDragging(false)
+    },
+    [progressRef],
+  )
 
   // Keyboard equivalent: the action is the point, not the dexterity.
   const onKeyDown = useCallback(
@@ -109,14 +124,18 @@ export function useDirectionalDrag({
       // moves the film on its own.
       targetRef.current = targetRef.current > 0.5 ? 0 : 1
       mark(targetRef.current)
+      if (targetRef.current === 1) onFull?.()
     },
-    [enabled, mark],
+    [enabled, mark, onFull],
   )
 
   // Only the keyboard path has anything to ease toward; a released drag has
   // already arrived. This lives here rather than in the render loop so the
   // control behaves the same whether or not a frame is drawn.
   useEffect(() => {
+    // A control that is not on this section has nothing to ease, and must not
+    // be writing to a progress ref that belongs to the one that is.
+    if (!enabled) return undefined
     let raf = 0
     let last = performance.now()
     const tick = () => {
@@ -136,7 +155,7 @@ export function useDirectionalDrag({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [enabled, progressRef])
 
   return {
     progressRef,

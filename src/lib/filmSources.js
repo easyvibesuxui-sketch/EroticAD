@@ -78,8 +78,20 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
   const sharedTexture = sharedVideo ? configure(new THREE.VideoTexture(sharedVideo)) : null
   const standInTexture = standIn ? configure(new THREE.CanvasTexture(standIn.canvas)) : null
 
+  /**
+   * `role` is either 'approach' or 'step:<n>'. A section is one approach and a
+   * sequence of actions, and the sequence is usually one long.
+   */
+  const sourceFor = (index, role) => {
+    const section = sections[index]
+    if (!section) return null
+    if (role === 'approach') return section.approach
+    const n = Number(role.slice('step:'.length))
+    return section.steps?.[n]?.src ?? null
+  }
+
   const ensure = (index, role) => {
-    const src = sections[index]?.[role]
+    const src = sourceFor(index, role)
     if (!src) return null
     const key = `${index}:${role}`
     let clip = clips.get(key)
@@ -108,6 +120,7 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
   const clipSource = (index, role, clip) =>
     remember(`${index}:${role}`, () => ({
       kind: role,
+      role,
       el: clip.el,
       texture: clip.texture,
       playFrom: 0,
@@ -134,10 +147,15 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
     }))
 
   const api = {
-    /** This section's two clips, and the next section's approach. Nothing more. */
+    /**
+     * This section's approach and every action it has, and the next section's
+     * approach. Nothing more — a section's clips are opened when the page
+     * reaches it, not all forty at once.
+     */
     prepare(index) {
       ensure(index, 'approach')
-      ensure(index, 'action')
+      const steps = sections[index]?.steps ?? []
+      for (let n = 0; n < steps.length; n += 1) ensure(index, `step:${n}`)
       ensure(index + 1, 'approach')
     },
 
@@ -148,17 +166,17 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
      * its first frames is not offered — cutting to it would mean a black frame
      * where the previous one should still be.
      */
-    get(index, phase) {
+    get(index, phase, step = 0) {
       const section = sections[index]
       if (!section) return null
 
-      const role = phase === 'armed' ? 'action' : 'approach'
+      const role = phase === 'armed' ? `step:${step}` : 'approach'
       const clip = ensure(index, role)
       if (clip && clip.el.readyState >= 2) return clipSource(index, role, clip)
 
       // The action clip has not arrived yet: hold on the approach's last frame
       // rather than cutting to nothing.
-      if (role === 'action') {
+      if (role !== 'approach') {
         const approach = ensure(index, 'approach')
         if (approach && approach.el.readyState >= 2) {
           return clipSource(index, 'approach', approach)

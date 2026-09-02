@@ -41,12 +41,30 @@ scroll to a section
 Then scroll on. The next section does the same thing with a different action,
 in a different place, in a different direction.
 
+**A section can be more than one action.** Most are one clip pulled along a
+line. Section two is two clips, each turned around a circle — both hands take
+the lace and roll it down, and a roll is a turn, so the guide is a ring and the
+hand goes round it. The second ring is the first one turned over: it starts
+where the first finished and runs back the other way.
+
+```
+armed, step 0   ring, clockwise    →  clip 02b, frame by frame
+   │  wound all the way            →  clip 02c takes the film, at its start
+   ▼
+armed, step 1   ring, anticlockwise →  clip 02c, frame by frame
+      wound back past its own start →  clip 02b takes it again, fully wound
+```
+
+The two clips meet on the same picture — 0.36 of a grey level apart out of 255,
+measured — so the handover is invisible. A section counts as done when its
+*last* action is done, not its first.
+
 | | |
 | --- | --- |
 | Sections | 10 |
 | Autoplay per section | however long its approach clip runs |
 | Mechanical per section | however long its action clip runs |
-| Film length | ~100s, as ten pairs |
+| Film length | ~100s, as ten approaches and their actions |
 
 Ten ticks down the right edge show where you are; a tick turns **gold** when its
 action has actually been performed — not when its section has been passed. That
@@ -253,10 +271,10 @@ the mechanic is never a dead screen.
 
 **In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
 section one as a pair — `01a-approach.mp4` (7.63s) and `01b-action.mp4` (2.42s,
-all-intra). Still wanted: nine more pairs and `after.mp3`.
+all-intra), and section two as an approach and two actions — `02a` (6.25s), `02b` (2.00s) and `02c` (1.79s), both actions all-intra. Still wanted: eight more sections and `after.mp3`.
 
-Each section is delivered as two files, split where the action begins: one that
-plays itself and one the hand moves. That split is the entire timing model —
+Each section is delivered as an approach that plays itself plus one or more
+actions the hand moves, split where each begins. That split is the entire timing model —
 nothing in the code names a second. A section without a pair falls back to a
 shared cut, then to the stand-in.
 

@@ -28,6 +28,7 @@ export default function FilmPlane({
   sources,
   standIn,
   activeRef,
+  stepRef,
   progressRef,
   aspectRef,
   sparkRef,
@@ -98,16 +99,20 @@ export default function FilmPlane({
     }
 
     const phase = phaseRef.current
-    const source = sources.get(section.index, phase)
+    // Which action the hand is on. Sections with one action are always on 0;
+    // section two hands over from its first clip to its second.
+    const stepIndex = Math.min(stepRef?.current ?? 0, section.steps.length - 1)
+    const step = section.steps[stepIndex]
+    const source = sources.get(section.index, phase, stepIndex)
     const key = `${section.index}:${source.kind}`
 
     if (key !== sourceKeyRef.current) {
       sourceKeyRef.current = key
       u.uTex.value = source.texture
       playhead.attach(source.el)
-      if (source.kind === 'action') {
+      if (source.role && source.role !== 'approach') {
         playhead.pause()
-        playhead.seek(source.scrubFrom, 0)
+        playhead.seek(source.scrubFrom + progress * (source.scrubTo - source.scrubFrom), 0)
       } else {
         playhead.seek(source.playFrom, 0)
         playhead.play()
@@ -123,7 +128,7 @@ export default function FilmPlane({
         playhead.pause()
         // Hold on the last frame of the approach until the action clip can
         // take over; cutting to an unbuffered clip shows black.
-        const canArm = !section.action || sources.ready(section.index, 'action')
+        const canArm = !step.src || sources.ready(section.index, `step:${stepIndex}`)
         if (canArm) setPhase('armed')
       }
     }
@@ -147,8 +152,8 @@ export default function FilmPlane({
 
     // The mark is where the hand is, so that is where the haze thins first.
     u.uPointer.value.set(
-      (section.u - 0.5) / cover.x + 0.5,
-      (1 - section.v - 0.5) / cover.y + 0.5,
+      (step.u - 0.5) / cover.x + 0.5,
+      (1 - step.v - 0.5) / cover.y + 0.5,
     )
     u.uWipe.value = progress
 

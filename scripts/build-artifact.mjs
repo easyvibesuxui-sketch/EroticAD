@@ -41,7 +41,7 @@ const styles = readFileSync(join(DIST, css), 'utf8')
 // Below the hard 16 MB page limit on purpose. This file is opened over whatever
 // connection the person sharing it has; the last two megabytes of a music loop
 // are not worth the wait.
-const CEILING_MB = 13
+const CEILING_MB = 15
 
 /**
  * MP3 frames are self-delimiting, so a track can be shortened by walking the
@@ -71,12 +71,25 @@ function trimMp3(buf, seconds) {
   return buf.subarray(0, i)
 }
 
+/*
+ * Order is priority: the budget is spent from the top down and whatever will
+ * not fit is left out.
+ *
+ * Footage goes first and the track last, which looks backwards until you see
+ * what each one loses when it is short of room. A clip that will not fit is
+ * simply gone — that section's picture stops moving under the hand. The track
+ * is not: `trimMp3` shortens the loop until it fits, so it is the one thing
+ * here that degrades instead of disappearing. It therefore goes at the end,
+ * where it takes what is left.
+ */
 const MEDIA_SLOTS = [
-  ...SECTIONS.flatMap((s) =>
-    ['approach', 'action']
-      .filter((role) => s[role])
-      .map((role) => [`section:${s.id}:${role}`, `public${s[role]}`, 'video/mp4']),
-  ),
+  ...SECTIONS.flatMap((s) => [
+    ...(s.approach ? [[`section:${s.id}:approach`, `public${s.approach}`, 'video/mp4']] : []),
+    // A section is a sequence of actions; most sequences are one long.
+    ...s.steps
+      .filter((step) => step.src)
+      .map((step) => [`section:${s.id}:step:${step.n}`, `public${step.src}`, 'video/mp4']),
+  ]),
   ['video', 'public/media/scene.mp4', 'video/mp4'],
   ['music', 'public/media/track.mp3', 'audio/mpeg'],
   ['after', 'public/media/after.mp3', 'audio/mpeg'],
@@ -94,7 +107,7 @@ for (const [slot, path, mime] of MEDIA_SLOTS) {
   let note = ''
   if (Math.ceil(raw.length / 3) * 4 > budget && slot === 'music') {
     // Rather than drop the sound entirely, shorten the loop until it fits.
-    for (const seconds of [90, 60, 45, 30]) {
+    for (const seconds of [120, 90, 60, 45, 30, 20]) {
       const trimmed = trimMp3(raw, seconds)
       if (Math.ceil(trimmed.length / 3) * 4 <= budget) {
         raw = trimmed

@@ -15,9 +15,11 @@ import { createFilmSources } from './lib/filmSources.js'
 import { SECTIONS } from './lib/sections.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
+import { useAngularDrag } from './hooks/useAngularDrag.js'
 import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
 import { useMarkTravel } from './hooks/useMarkTravel.js'
+import { useRingRadius } from './hooks/useRingRadius.js'
 import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
@@ -26,11 +28,29 @@ export default function App() {
   const [transport, setTransport] = useState('idle') // idle | playing | armed
   const [committedIds, setCommittedIds] = useState(() => new Set())
   const [muted, setMuted] = useState(false)
+  /*
+   * Which of this section's actions the hand is on.
+   *
+   * Almost every section is one clip and stays at 0. Section two is two, and
+   * finishing the first hands the film to the second — winding the second back
+   * past its own start hands it back again.
+   */
+  const [step, setStep] = useState(0)
 
   const audioRef = useRef(null)
   const aspectRef = useRef(16 / 9)
   const sparkRef = useRef({ u: 0.5, v: 0.5, at: 0 })
   const signalsRef = useRef({ progress: 0, phase: 'idle', section: 0, time: 0 })
+  const stepRef = useRef(0)
+  /*
+   * One progress ref for the whole page. Whichever control this step calls for
+   * writes into it, so the render loop never has to know which shape won — and
+   * the film stage is never rebuilt just because the guide changed.
+   */
+  const progressRef = useRef(0)
+  const centreRef = useRef({ x: 0, y: 0 })
+  /** Where the next step opens: 0 coming forward, 1 coming back. */
+  const enterAtRef = useRef(0)
 
   const reducedMotion = useReducedMotion()
   const trackRef = useRef(null)
@@ -44,6 +64,10 @@ export default function App() {
 
   const active = Math.min(index, SECTIONS.length - 1)
   const section = SECTIONS[active]
+  const stepIndex = Math.min(step, section.steps.length - 1)
+  const action = section.steps[stepIndex]
+  const isLastStep = stepIndex === section.steps.length - 1
+  const ring = action.track === 'ring'
 
   const toggleSound = useCallback(() => {
     setMuted((prev) => {
@@ -54,19 +78,20 @@ export default function App() {
   }, [])
 
   const handleCommit = useCallback(() => {
-    sparkRef.current = { u: section.u, v: section.v, at: performance.now() }
+    sparkRef.current = { u: action.u, v: action.v, at: performance.now() }
     audioRef.current?.chime()
-    // The second audio waits for exactly this: the mark drawn all the way, at
-    // the end of the section. Not during the drag — after it.
-    audioRef.current?.after()
     if (navigator.vibrate) navigator.vibrate(18)
+    // A section is done when its *last* action is done. Until then the piece is
+    // still coming off, and the card has nothing to announce yet.
+    if (!isLastStep) return
+    audioRef.current?.after()
     setCommittedIds((prev) => {
       if (prev.has(section.id)) return prev
       const next = new Set(prev)
       next.add(section.id)
       return next
     })
-  }, [section])
+  }, [action, isLastStep, section.id])
 
   // Drag the piece back on and the sound goes with it. The rail keeps its
   // gold — that is a record of what you did, not a description of the frame —
@@ -75,27 +100,88 @@ export default function App() {
     audioRef.current?.stopAfter()
   }, [])
 
-  const travel = useMarkTravel(section, aspectRef)
+  /** Wound all the way: the next clip takes the film, opened at its start. */
+  const handleFull = useCallback(() => {
+    if (isLastStep) return
+    enterAtRef.current = 0
+    setStep((n) => n + 1)
+  }, [isLastStep])
 
-  const drag = useDirectionalDrag({
-    dir: section.dir,
+  /**
+   * Wound back past the start: the previous clip takes the film again, fully
+   * wound, so the hand carries on backwards through the whole action instead of
+   * hitting a wall at a cut it never saw.
+   */
+  const handleExitBack = useCallback(() => {
+    if (stepIndex === 0) return
+    audioRef.current?.stopAfter()
+    enterAtRef.current = 1
+    setStep((n) => Math.max(0, n - 1))
+  }, [stepIndex])
+
+  const travel = useMarkTravel(action, aspectRef)
+  const radius = useRingRadius(action)
+
+  /*
+   * Both controls exist; only the one this step calls for is enabled, and only
+   * an enabled one writes to the progress ref or runs a frame loop. Hooks
+   * cannot be called conditionally, and the alternative — one hook that is
+   * secretly two — would put the straight pull and the turn in the same
+   * function for nothing.
+   */
+  const linear = useDirectionalDrag({
+    dir: action.dir,
     length: travel,
-    enabled: transport === 'armed',
+    enabled: transport === 'armed' && !ring,
+    progressRef,
     onCommit: handleCommit,
     onUndo: handleUndo,
+    onFull: handleFull,
   })
+
+  const angular = useAngularDrag({
+    step: action,
+    centreRef,
+    radius,
+    enabled: transport === 'armed' && ring,
+    progressRef,
+    onCommit: handleCommit,
+    onUndo: handleUndo,
+    onFull: handleFull,
+    onExitBack: handleExitBack,
+  })
+
+  const drag = ring ? angular : linear
 
   // A new section is a new action: whatever was wound on the last one goes
   // back to zero, or the next mark would open already half-used. The transport
   // is disarmed here rather than waiting for the render loop to notice — for
   // the frame in between, the old section's mark would still be live over the
   // new section's footage.
-  const { reset } = drag
+  const linearReset = linear.reset
+  const angularReset = angular.reset
   useEffect(() => {
-    reset()
+    enterAtRef.current = 0
+    setStep(0)
+    stepRef.current = 0
+    linearReset()
+    angularReset(0)
     audioRef.current?.stopAfter()
     setTransport('playing')
-  }, [active, reset])
+  }, [active, angularReset, linearReset])
+
+  /*
+   * Handing over between the clips inside a section. The film needs no seek:
+   * the two clips meet on the same picture — 0.36 of a grey level apart out of
+   * 255 — so this only has to put the control where the hand left it.
+   */
+  useEffect(() => {
+    stepRef.current = stepIndex
+    const at = enterAtRef.current
+    progressRef.current = at
+    if (ring) angularReset(at)
+    else linearReset()
+  }, [angularReset, linearReset, ring, stepIndex])
 
   const handleEnter = useCallback(async () => {
     if (phase !== 'gate') return
@@ -148,7 +234,8 @@ export default function App() {
         sources={source.sources}
         standIn={source.standIn}
         activeRef={indexRef}
-        progressRef={drag.progressRef}
+        stepRef={stepRef}
+        progressRef={progressRef}
         aspectRef={aspectRef}
         sparkRef={sparkRef}
         audioRef={audioRef}
@@ -157,12 +244,18 @@ export default function App() {
         reducedMotion={reducedMotion}
       />
     )
-  }, [source, indexRef, drag.progressRef, reducedMotion])
+  }, [source, indexRef, reducedMotion])
 
   const live = phase === 'live'
 
   return (
-    <main className="relative w-full bg-void" data-phase={phase} data-transport={transport} data-section={active}>
+    <main
+      className="relative w-full bg-void"
+      data-phase={phase}
+      data-transport={transport}
+      data-section={active}
+      data-step={stepIndex}
+    >
       {stage}
 
       {live && (
@@ -181,11 +274,14 @@ export default function App() {
           </header>
 
           <SectionIndicator
-            section={section}
+            key={`${section.id}:${stepIndex}`}
+            step={action}
             travel={travel}
+            radius={radius}
+            centreRef={centreRef}
             aspectRef={aspectRef}
             armed={transport === 'armed'}
-            progressRef={drag.progressRef}
+            progressRef={progressRef}
             dragging={drag.dragging}
             committed={drag.committed}
             handlers={drag.handlers}

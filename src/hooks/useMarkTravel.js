@@ -26,21 +26,21 @@ const MIN_TRAVEL = 150
 /** Clearance kept between the end of the travel and the edge of the window. */
 const EDGE_MARGIN = 56
 
-export function useMarkTravel(section, aspectRef) {
+export function useMarkTravel(step, aspectRef) {
   const measure = useCallback(() => {
     if (typeof window === 'undefined') return MIN_TRAVEL
     const vw = window.innerWidth
     const vh = window.innerHeight
-    const [dx, dy] = DIRECTIONS[section.dir] ?? DIRECTIONS.right
+    const [dx, dy] = DIRECTIONS[step.dir] ?? DIRECTIONS.right
 
-    const wanted = (section.travel ?? 0.5) * Math.min(vw, vh)
+    const wanted = (step.travel ?? 0.5) * Math.min(vw, vh)
 
-    const p = filmToScreen(section.u, section.v, vw, vh, aspectRef.current || 16 / 9)
+    const p = filmToScreen(step.u, step.v, vw, vh, aspectRef.current || 16 / 9)
     const room =
       (dx > 0 ? vw - p.x : dx < 0 ? p.x : dy > 0 ? vh - p.y : p.y) - EDGE_MARGIN
 
     return Math.max(MIN_TRAVEL, Math.min(wanted, room))
-  }, [aspectRef, section])
+  }, [aspectRef, step])
 
   const [travel, setTravel] = useState(measure)
 

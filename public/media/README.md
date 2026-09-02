@@ -1,10 +1,24 @@
 # Drop your assets here
 
-Three filenames are picked up automatically:
+Two kinds of file are picked up automatically: the sound, and the sections.
+
+**Sections.** Each one is delivered as an approach that plays itself plus one
+or more actions the hand moves, numbered in the order they happen:
+
+| File                     | What it is                                         |
+| ------------------------ | -------------------------------------------------- |
+| `sections/NNa-approach.mp4` | Plays itself and ends. Ordinary GOP.            |
+| `sections/NNb-action.mp4`   | The hand's. All-intra — every frame a keyframe. |
+| `sections/NNc-action.mp4`   | A second action, if the movement needs two.     |
+
+Section one is one action drawn along a line; section two is two, each turned
+around a circle. Which shape a section uses is set in `src/lib/sections.js`.
+
+**Sound.**
 
 | File          | What it is                                                     |
 | ------------- | -------------------------------------------------------------- |
-| `scene.mp4`   | The film. H.264, muted track, loopable. 1080p is plenty.        |
+| `scene.mp4`   | A shared cut, used by any section with no clips of its own.      |
 | `track.mp3`   | The music, and the only music. Loops seamlessly, no stand-in.    |
 | `after.mp3`   | The second audio. Played once at the end of a section, after the mark has been drawn all the way. A cue, not a loop — a few seconds is right. |
 

@@ -44,12 +44,38 @@ const section = (i, rest) => {
   const autoplay = rest.autoplay ?? AUTOPLAY_SECONDS
   const scrub = rest.scrub ?? SCRUB_SECONDS
   const sharedStart = i * SECTION_SECONDS
-  return {
+  const base = {
     index: i,
     /** Drag distance as a fraction of the viewport's shorter side. */
     travel: 0.5,
     steam: 0.2,
     ...rest,
+  }
+
+  /*
+   * A section is a *sequence* of actions, not one action.
+   *
+   * Most are a sequence of one — a single clip, drawn along a straight line —
+   * and are written that way, with `action` and the section's own `u`/`v`/`dir`.
+   * A section that needs more says so with `steps`, and each entry inherits
+   * whatever it does not override. Finishing one step hands the film to the
+   * next; winding the first one back past its start hands it back again.
+   */
+  const steps = (base.steps ?? [{ src: base.action }]).map((step, n) => ({
+    /** 'line' is a straight pull; 'ring' is a turn about a centre. */
+    track: 'line',
+    u: base.u,
+    v: base.v,
+    dir: base.dir ?? 'right',
+    travel: base.travel,
+    label: base.actionLabel,
+    ...step,
+    n,
+  }))
+
+  return {
+    ...base,
+    steps,
     // A slot in the shared cut, or in the procedural stand-in.
     sharedStart,
     sharedAutoplayEnd: sharedStart + autoplay,
@@ -69,7 +95,10 @@ const withInjected = (list) =>
   list.map((s) => ({
     ...s,
     approach: asset(injectedSections[`${s.id}:approach`] ?? s.approach),
-    action: asset(injectedSections[`${s.id}:action`] ?? s.action),
+    steps: s.steps.map((step) => ({
+      ...step,
+      src: asset(injectedSections[`${s.id}:step:${step.n}`] ?? step.src),
+    })),
   }))
 
 /*
@@ -122,12 +151,55 @@ export const SECTIONS = withInjected([
       note: 'Washed silk, French seams throughout',
       edition: 'One of sixty',
     },
-    actionLabel: 'Slip the strap',
     title: 'Two',
     caption: 'Silk charmeuse, cut on the bias.',
-    u: 0.42,
-    v: 0.3,
-    dir: 'down',
+    approach: '/media/sections/02a-approach.mp4',
+    /*
+     * Two actions, not one, and neither of them a straight pull.
+     *
+     * Both hands take the lace and roll it down, and a roll is a turn — so the
+     * guide is a circle and the hand goes round it. The clips are consecutive:
+     * the second one's first frame and the first one's last differ by 0.36 of
+     * a grey level out of 255, so the handover between them is invisible.
+     *
+     * The second ring is the first one turned over — it starts where the first
+     * finished and runs back the other way, because that is what the second
+     * half of the movement does. Winding it back past its own start returns
+     * the film to the first ring, fully wound, so nothing here is one-way.
+     *
+     * Centred between the two hands, measured off the action clip's first
+     * frame: the near hand sits at u 0.34, the far one at u 0.47, both at
+     * about v 0.77.
+     */
+    u: 0.4,
+    v: 0.74,
+    steps: [
+      {
+        src: '/media/sections/02b-action.mp4',
+        track: 'ring',
+        label: 'Turn the lace down',
+        /** Radius as a fraction of the viewport's shorter side. */
+        radius: 0.15,
+        /** Degrees of arc the whole action occupies. */
+        sweep: 250,
+        /** Where the hand starts, in degrees. 0 is three o'clock, y down. */
+        start: -140,
+        /** +1 turns clockwise, -1 anticlockwise. */
+        spin: 1,
+      },
+      {
+        src: '/media/sections/02c-action.mp4',
+        track: 'ring',
+        label: 'Keep turning',
+        radius: 0.15,
+        sweep: 250,
+        // The same ring, turned over: it picks up where the first one left off
+        // and runs the other way.
+        start: 40,
+        spin: -1,
+      },
+    ],
+    steam: 0.2,
   }),
   section(2, {
     id: 'clasp',
