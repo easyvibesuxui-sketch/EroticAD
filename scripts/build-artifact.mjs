@@ -126,7 +126,7 @@ const mediaTag = Object.keys(injected).length
 // A literal </script> anywhere in the bundle would close the tag early.
 const safeScript = script.replace(/<\/script/gi, '<\\/script')
 
-const html = `<title>Frame by Hand</title>
+const html = `<title>Maison Ondine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link

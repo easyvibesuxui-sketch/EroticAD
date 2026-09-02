@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 
+import Wordmark from './Wordmark.jsx'
+import { BRAND } from '../lib/brand.js'
+
 /**
  * The gate holds the whole experience back — no video element is created, no
  * texture is uploaded and no audio graph exists until someone confirms their
@@ -38,9 +41,7 @@ export default function AgeGate({ onEnter, booting }) {
         className="materialize relative w-full max-w-xl px-8 text-center"
         data-visible={shown}
       >
-        <p className="font-sans text-[0.6rem] font-light uppercase tracking-widest3 text-crimson-400/80">
-          Eroticad
-        </p>
+        <Wordmark className="justify-center text-crimson-200/85" size={17} />
 
         <div className="mx-auto mt-7 h-px w-24 rule-fade" />
 
@@ -51,10 +52,10 @@ export default function AgeGate({ onEnter, booting }) {
           </span>
         </h1>
 
-        <p className="mx-auto mt-8 max-w-sm font-sans text-[0.72rem] font-light leading-relaxed tracking-[0.18em] text-smoke/50">
-          Explicit material. Sound on, headphones warmer.
+        <p className="mx-auto mt-8 max-w-sm font-sans text-[0.72rem] font-light leading-relaxed tracking-[0.18em] text-smoke/55">
+          {BRAND.season}. {BRAND.gateLine}
           <br />
-          Nothing plays until you say yes.
+          Explicit material. Sound on, headphones warmer.
         </p>
 
         <div className="mt-12 flex flex-col items-center gap-6">

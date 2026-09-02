@@ -1,7 +1,10 @@
-# EROTICAD — Ten sections, ten actions
+# Maison Ondine — Collection Première
 
-One film, ten sections. Each plays eight seconds on its own, then stops dead —
-and the last two seconds only move if you move them.
+A shop for ten pieces of lingerie, in which nothing comes off on its own.
+
+Each section is one piece: its approach clip plays itself and stops, and the
+last stretch only moves if you move it. Only once the piece is off are you told
+what it was and what it costs.
 
 That is the whole site rule. A gold mark appears where the action is, dashes
 point the way, and dragging along them runs the film frame by frame: the strap
@@ -45,9 +48,18 @@ in a different place, in a different direction.
 | Mechanical per section | however long its action clip runs |
 | Film length | ~100s, as ten pairs |
 
-Ten ticks down the right edge show where you are; a tick turns **gold** when
-its action has actually been performed — not when its section has been passed.
-That difference is the site.
+Ten ticks down the right edge show where you are; a tick turns **gold** when its
+action has actually been performed — not when its section has been passed. That
+difference is the site: a piece you have not undressed is a piece you have not
+been offered.
+
+The house lives in one file, `src/lib/brand.js` — name, wordmark, season, price
+formatting. The mark itself is in `Wordmark.jsx`, and it is deliberately the
+same hairline ring, the same gap, the same terminus dot that every section asks
+you to drag: the logo and the gesture are the same object.
+
+Copy is set over the film with a text shadow rather than a scrim. The film is
+the product; nothing in the interface is allowed to dim it.
 
 ---
 
@@ -78,7 +90,8 @@ src/
     FilmPlane.jsx          the transport: playing / armed, and every uniform
     Mark.jsx               ring, chevron, dashed path, terminus, progress arc
     SectionIndicator.jsx   places the mark on the film and wires it to the hand
-    ScrollTrack.jsx        ten empty full-height sections, and their copy
+    Wordmark.jsx           the mark, which is the ring from the sections
+    ScrollTrack.jsx        ten empty sections: the film's line, then the piece
     SectionRail.jsx        where you are, and what you have undone
   shaders/
     steam.vert.glsl        the pane, breathing

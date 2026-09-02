@@ -7,6 +7,7 @@ import SectionIndicator from './components/SectionIndicator.jsx'
 import SectionRail from './components/SectionRail.jsx'
 import ScrollCue from './components/ScrollCue.jsx'
 import SoundToggle from './components/SoundToggle.jsx'
+import Wordmark from './components/Wordmark.jsx'
 import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
 import { Playhead } from './lib/Playhead.js'
@@ -160,9 +161,7 @@ export default function App() {
           <div className="pointer-events-none fixed inset-0 z-20 grain opacity-[0.09]" />
 
           <header className="pointer-events-none fixed inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-6 sm:px-10 sm:py-8">
-            <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest3 text-blush/70">
-              Eroticad
-            </span>
+            <Wordmark className="text-blush/80" />
             <span className="flex items-center gap-4">
               <span className="font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-crimson-400/70">
                 18+

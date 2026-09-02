@@ -70,9 +70,23 @@ const withInjected = (list) =>
     ...(injectedSections[`${s.id}:action`] ? { action: injectedSections[`${s.id}:action`] } : {}),
   }))
 
+/*
+ * The shop.
+ *
+ * Each section is one piece of the collection: the film shows it coming off,
+ * and the card that follows sells it. Only section one is real — the other nine
+ * carry placeholder pieces so the layout can be judged, and are replaced as
+ * their footage arrives.
+ */
 export const SECTIONS = withInjected([
   section(0, {
     id: 'robe',
+    product: {
+      name: 'Le Peignoir',
+      price: 680,
+      note: 'Bias-cut silk charmeuse, hand-rolled hems',
+      edition: 'One of forty',
+    },
     // Two files, so the hold needs no timing at all: the approach ends where it
     // ends, and everything in the action clip belongs to the hand.
     approach: '/media/sections/01a-approach.mp4',
@@ -100,6 +114,12 @@ export const SECTIONS = withInjected([
 
   section(1, {
     id: 'strap',
+    product: {
+      name: 'La Combinaison',
+      price: 420,
+      note: 'Washed silk, French seams throughout',
+      edition: 'One of sixty',
+    },
     actionLabel: 'Slip the strap',
     title: 'Two',
     caption: 'Silk charmeuse, cut on the bias.',
@@ -109,6 +129,12 @@ export const SECTIONS = withInjected([
   }),
   section(2, {
     id: 'clasp',
+    product: {
+      name: 'Le Corset',
+      price: 590,
+      note: 'Coutil and aged brass, boned by hand',
+      edition: 'One of thirty',
+    },
     actionLabel: 'Open the clasp',
     title: 'Three',
     caption: 'Solid brass, aged by hand.',
@@ -118,6 +144,12 @@ export const SECTIONS = withInjected([
   }),
   section(3, {
     id: 'lace',
+    product: {
+      name: 'La Guêpière',
+      price: 740,
+      note: 'Leavers lace from Calais, silk-lined',
+      edition: 'One of twenty',
+    },
     actionLabel: 'Follow the lace',
     title: 'Four',
     caption: 'Leavers lace from Calais.',
@@ -128,6 +160,12 @@ export const SECTIONS = withInjected([
   }),
   section(4, {
     id: 'silk',
+    product: {
+      name: 'Le Déshabillé',
+      price: 520,
+      note: 'Four-ply silk, unlined',
+      edition: 'One of forty',
+    },
     actionLabel: 'Draw the silk down',
     title: 'Five',
     caption: 'Nothing under it but the light.',
@@ -138,6 +176,12 @@ export const SECTIONS = withInjected([
   }),
   section(5, {
     id: 'ribbon',
+    product: {
+      name: 'Le Ruban',
+      price: 260,
+      note: 'Double-faced satin, a single knot',
+      edition: 'One of ninety',
+    },
     actionLabel: 'Pull the ribbon',
     title: 'Six',
     caption: 'It only ever held by one knot.',
@@ -147,6 +191,12 @@ export const SECTIONS = withInjected([
   }),
   section(6, {
     id: 'glove',
+    product: {
+      name: 'Les Gants',
+      price: 190,
+      note: 'Elbow length, seamed at the wrist',
+      edition: 'One of sixty',
+    },
     actionLabel: 'Peel the glove',
     title: 'Seven',
     caption: 'Elbow length, seamed at the wrist.',
@@ -156,6 +206,12 @@ export const SECTIONS = withInjected([
   }),
   section(7, {
     id: 'sheet',
+    product: {
+      name: 'Le Drap',
+      price: 610,
+      note: 'Stonewashed linen, ladder-stitched',
+      edition: 'One of thirty',
+    },
     actionLabel: 'Draw the sheet back',
     title: 'Eight',
     caption: 'Washed linen, heavy as water.',
@@ -166,6 +222,12 @@ export const SECTIONS = withInjected([
   }),
   section(8, {
     id: 'lamp',
+    product: {
+      name: 'La Veilleuse',
+      price: 340,
+      note: 'Hand-blown glass on an aged brass base',
+      edition: 'One of twenty',
+    },
     actionLabel: 'Turn the lamp down',
     title: 'Nine',
     caption: 'The room goes the colour of skin.',
@@ -175,6 +237,12 @@ export const SECTIONS = withInjected([
   }),
   section(9, {
     id: 'door',
+    product: {
+      name: 'La Clé',
+      price: 120,
+      note: 'Solid brass, engraved to order',
+      edition: 'One of ten',
+    },
     actionLabel: 'Close the door',
     title: 'Ten',
     caption: 'Everything after this is yours.',
