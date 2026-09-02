@@ -28,12 +28,15 @@ export const SECTION_SECONDS = AUTOPLAY_SECONDS + SCRUB_SECONDS
 export const COMMIT_THRESHOLD = 0.82
 
 /**
- * A section may carry its own clip (`src`), which is how the film is actually
- * being delivered — one file per setup. Then its timings are measured from the
- * start of that file. Without one it falls back to the shared cut, or to the
- * stand-in, and its timings are measured from its slot in that longer piece.
- * Both sets are computed here; the source that resolves at runtime decides
- * which pair is used.
+ * A section is delivered as two files: the approach, which plays itself, and
+ * the action, which only the hand moves. That split is the whole timing model —
+ * there is no "hold at 7.4 seconds" to get wrong, because the approach simply
+ * ends and the action clip is the last two seconds. It also lets the two be
+ * encoded for what they each do: the approach is never seeked, while the action
+ * is nothing but seeking, so it ships all-intra.
+ *
+ * Without a pair, a section falls back to a shared cut or the stand-in, where
+ * its slot is still described by the numbers below.
  */
 const section = (i, rest) => {
   const autoplay = rest.autoplay ?? AUTOPLAY_SECONDS
@@ -44,12 +47,6 @@ const section = (i, rest) => {
     length: 96,
     steam: 0.2,
     ...rest,
-    autoplay,
-    scrub,
-    // Its own clip: the section is the whole file.
-    ownStart: 0,
-    ownAutoplayEnd: autoplay,
-    ownScrubEnd: autoplay + scrub,
     // A slot in the shared cut, or in the procedural stand-in.
     sharedStart,
     sharedAutoplayEnd: sharedStart + autoplay,
@@ -66,35 +63,33 @@ const injectedSections =
   (typeof window !== 'undefined' && window.__EROTICAD_MEDIA?.sections) || {}
 
 const withInjected = (list) =>
-  list.map((s) => (s.src && injectedSections[s.id] ? { ...s, src: injectedSections[s.id] } : s))
+  list.map((s) => ({
+    ...s,
+    ...(injectedSections[`${s.id}:approach`] ? { approach: injectedSections[`${s.id}:approach`] } : {}),
+    ...(injectedSections[`${s.id}:action`] ? { action: injectedSections[`${s.id}:action`] } : {}),
+  }))
 
 export const SECTIONS = withInjected([
   section(0, {
     id: 'robe',
-    src: '/media/sections/01-robe.mp4',
-    // She rises and comes to the lens for the first seven and a half seconds.
-    // The robe does not begin to open until 7.40 — holding at 8.0, as the
-    // default did, handed the first six-tenths of the action to the autoplay
-    // and left the hand with the leftovers.
-    autoplay: 7.4,
-    scrub: 2.6,
-    action: 'Draw the robe open',
+    // Two files, so the hold needs no timing at all: the approach ends where it
+    // ends, and everything in the action clip belongs to the hand.
+    approach: '/media/sections/01a-approach.mp4',
+    action: '/media/sections/01b-action.mp4',
+    actionLabel: 'Draw the robe open',
     title: 'One',
     caption: 'It was never really closed.',
     /*
-     * Measured off the clip rather than guessed at. At 7.40 both hands rest at
-     * the centre, at v 0.37 — the near one at u 0.36, the far one at u 0.64 —
-     * and over the next two and a half seconds they travel *apart*: the left
-     * edge of the robe runs from u 0.28 to u 0.10, the right from u 0.77 to
-     * u 0.96. Outward, not downward, which is what the first pass got wrong.
-     *
-     * A straight drag can only follow one hand, so it follows the far one to
-     * the right: pushing forward opens the robe, pulling back closes it.
+     * Measured off the action clip's first frame. Both hands hold the robe at
+     * v 0.36 — the near one at u 0.31, the far one at u 0.68 — and over the next
+     * two and a half seconds they travel apart and out of frame. Outward, not
+     * downward. A straight drag can only follow one hand, so it follows the far
+     * one to the right: forward opens the robe, back closes it.
      */
-    u: 0.64,
-    v: 0.37,
+    u: 0.68,
+    v: 0.36,
     dir: 'right',
-    length: 230,
+    length: 250,
     // Tuned against the delivered footage rather than guessed at: 0.34 was set
     // before there was a film to look at, and it fogged this one past reading.
     steam: 0.22,
@@ -102,7 +97,7 @@ export const SECTIONS = withInjected([
 
   section(1, {
     id: 'strap',
-    action: 'Slip the strap',
+    actionLabel: 'Slip the strap',
     title: 'Two',
     caption: 'Silk charmeuse, cut on the bias.',
     u: 0.42,
@@ -112,7 +107,7 @@ export const SECTIONS = withInjected([
   }),
   section(2, {
     id: 'clasp',
-    action: 'Open the clasp',
+    actionLabel: 'Open the clasp',
     title: 'Three',
     caption: 'Solid brass, aged by hand.',
     u: 0.58,
@@ -122,7 +117,7 @@ export const SECTIONS = withInjected([
   }),
   section(3, {
     id: 'lace',
-    action: 'Follow the lace',
+    actionLabel: 'Follow the lace',
     title: 'Four',
     caption: 'Leavers lace from Calais.',
     u: 0.36,
@@ -132,7 +127,7 @@ export const SECTIONS = withInjected([
   }),
   section(4, {
     id: 'silk',
-    action: 'Draw the silk down',
+    actionLabel: 'Draw the silk down',
     title: 'Five',
     caption: 'Nothing under it but the light.',
     u: 0.5,
@@ -143,7 +138,7 @@ export const SECTIONS = withInjected([
   }),
   section(5, {
     id: 'ribbon',
-    action: 'Pull the ribbon',
+    actionLabel: 'Pull the ribbon',
     title: 'Six',
     caption: 'It only ever held by one knot.',
     u: 0.46,
@@ -153,7 +148,7 @@ export const SECTIONS = withInjected([
   }),
   section(6, {
     id: 'glove',
-    action: 'Peel the glove',
+    actionLabel: 'Peel the glove',
     title: 'Seven',
     caption: 'Elbow length, seamed at the wrist.',
     u: 0.62,
@@ -163,7 +158,7 @@ export const SECTIONS = withInjected([
   }),
   section(7, {
     id: 'sheet',
-    action: 'Draw the sheet back',
+    actionLabel: 'Draw the sheet back',
     title: 'Eight',
     caption: 'Washed linen, heavy as water.',
     u: 0.55,
@@ -174,7 +169,7 @@ export const SECTIONS = withInjected([
   }),
   section(8, {
     id: 'lamp',
-    action: 'Turn the lamp down',
+    actionLabel: 'Turn the lamp down',
     title: 'Nine',
     caption: 'The room goes the colour of skin.',
     u: 0.28,
@@ -184,7 +179,7 @@ export const SECTIONS = withInjected([
   }),
   section(9, {
     id: 'door',
-    action: 'Close the door',
+    actionLabel: 'Close the door',
     title: 'Ten',
     caption: 'Everything after this is yours.',
     u: 0.5,

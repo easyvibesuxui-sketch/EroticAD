@@ -17,11 +17,11 @@ const SPARK_SECONDS = 0.9
  * page is, decides whether this section is playing itself or waiting for a
  * hand, and puts the right frame on screen:
  *
- *   entering  seek to the section's first frame and play
- *   playing   run until the sixth second, then stop dead
- *   armed     the playhead belongs to the hand — position it from the drag
+ *   entering  attach the section's approach, rewind, play
+ *   playing   run the approach to its end, then stop dead
+ *   armed     cut to the action clip; the playhead now belongs to the drag
  *
- * The last two seconds are never played, in either mode. They are addressed.
+ * The action clip is never played, in either phase. It is addressed.
  */
 export default function FilmPlane({
   playhead,
@@ -39,6 +39,7 @@ export default function FilmPlane({
   const materialRef = useRef()
   const phaseRef = useRef('idle')
   const sourceKeyRef = useRef('')
+  const sectionRef = useRef(-1)
   const beatRef = useRef(0)
   const steamRef = useRef(1)
   const sparkStateRef = useRef({ amount: 0, at: 0 })
@@ -83,37 +84,52 @@ export default function FilmPlane({
     const progress = progressRef.current
 
     // --- the transport ----------------------------------------------------
-    // Each section carries its own clip, so arriving at one may mean a
-    // different file, a different texture and a different playhead. The key
-    // covers both: a new section, and the same section's own clip finally
-    // finishing what the stand-in was covering for.
+    // A section is two files: one that plays itself and one the hand moves.
+    // Which is on screen follows the phase, so the handover is a texture swap
+    // and a rewind to zero rather than a seek inside a longer piece.
     sources.prepare(section.index)
-    const source = sources.get(section.index)
+
+    // Arriving at a section always starts it over from its approach, even if
+    // the last one was left armed.
+    if (section.index !== sectionRef.current) {
+      sectionRef.current = section.index
+      phaseRef.current = 'playing'
+      onPhaseChange?.('playing')
+    }
+
+    const phase = phaseRef.current
+    const source = sources.get(section.index, phase)
     const key = `${section.index}:${source.kind}`
 
     if (key !== sourceKeyRef.current) {
       sourceKeyRef.current = key
       u.uTex.value = source.texture
       playhead.attach(source.el)
-      playhead.seek(source.start, 0)
-      playhead.play()
-      setPhase('playing')
+      if (source.kind === 'action') {
+        playhead.pause()
+        playhead.seek(source.scrubFrom, 0)
+      } else {
+        playhead.seek(source.playFrom, 0)
+        playhead.play()
+      }
     }
 
     playhead.tick()
 
-    if (phaseRef.current === 'playing') {
+    if (phase === 'playing') {
       // Frame-accurate, which `timeupdate` is not — it fires four times a
-      // second and would overshoot the hold by up to a fifth of a second.
-      if (playhead.time >= source.autoplayEnd - 0.03) {
+      // second and would overshoot the end of the approach by a fifth of one.
+      if (playhead.time >= source.playTo - 0.05) {
         playhead.pause()
-        playhead.seek(source.autoplayEnd, 0)
-        setPhase('armed')
+        // Hold on the last frame of the approach until the action clip can
+        // take over; cutting to an unbuffered clip shows black.
+        const canArm = !section.action || sources.ready(section.index, 'action')
+        if (canArm) setPhase('armed')
       }
     }
 
-    if (phaseRef.current === 'armed') {
-      playhead.seek(source.autoplayEnd + progress * (source.scrubEnd - source.autoplayEnd))
+    if (phase === 'armed') {
+      playhead.seek(source.scrubFrom + progress * (source.scrubTo - source.scrubFrom))
     }
 
     // --- geometry ---------------------------------------------------------

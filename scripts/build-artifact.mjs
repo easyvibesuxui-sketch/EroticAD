@@ -72,11 +72,11 @@ function trimMp3(buf, seconds) {
 }
 
 const MEDIA_SLOTS = [
-  ...SECTIONS.filter((s) => s.src).map((s) => [
-    `section:${s.id}`,
-    `public${s.src}`,
-    'video/mp4',
-  ]),
+  ...SECTIONS.flatMap((s) =>
+    ['approach', 'action']
+      .filter((role) => s[role])
+      .map((role) => [`section:${s.id}:${role}`, `public${s[role]}`, 'video/mp4']),
+  ),
   ['video', 'public/media/scene.mp4', 'video/mp4'],
   ['music', 'public/media/track.mp3', 'audio/mpeg'],
   ['breath', 'public/media/breath.mp3', 'audio/mpeg'],
@@ -112,7 +112,7 @@ for (const [slot, path, mime] of MEDIA_SLOTS) {
   const bytes = raw.length
   embeddedBytes += bytes
   const uri = `data:${mime};base64,${raw.toString('base64')}`
-  if (slot.startsWith('section:')) sectionSrc[slot.slice(8)] = uri
+  if (slot.startsWith('section:')) sectionSrc[slot.slice('section:'.length)] = uri
   else injected[slot] = [uri]
   console.log(`  embedding ${slot}: ${(bytes / 1024 / 1024).toFixed(1)} MB${note}`)
 }

@@ -25,7 +25,7 @@ npm run build:artifact   # one self-contained HTML file
 ```
 scroll to a section
    │
-   ├─ playing   the section's first 8s run themselves
+   ├─ playing   the section's approach clip runs itself, and ends
    │
    ├─ armed     the playhead stops. The mark appears where the action is.
    │
@@ -41,9 +41,9 @@ in a different place, in a different direction.
 | | |
 | --- | --- |
 | Sections | 10 |
-| Autoplay per section | 8s by default, per clip in practice |
-| Mechanical per section | 2s by default, per clip in practice |
-| Film length | 100s, as ten clips |
+| Autoplay per section | however long its approach clip runs |
+| Mechanical per section | however long its action clip runs |
+| Film length | ~100s, as ten pairs |
 
 Ten ticks down the right edge show where you are; a tick turns **gold** when
 its action has actually been performed — not when its section has been passed.
@@ -232,12 +232,13 @@ procedural footage into the shader and the audio engine synthesises its bed, so
 the mechanic is never a dead screen.
 
 **In place:** `public/media/track.mp3` (2:57, VBR, 48 kHz) and
-`public/media/sections/01-robe.mp4` (10.04s, 1280×720, 24fps, re-encoded to a
-6-frame GOP). Still wanted: nine more section clips and `breath.mp3`.
+section one as a pair — `01a-approach.mp4` (7.63s) and `01b-action.mp4` (2.42s,
+all-intra). Still wanted: nine more pairs and `breath.mp3`.
 
-Each section names its own clip and carries its own timings, so the clips need
-not match in length. A section without one falls back to a shared cut, then to
-the stand-in — the site runs with ten files, one, or none.
+Each section is delivered as two files, split where the action begins: one that
+plays itself and one the hand moves. That split is the entire timing model —
+nothing in the code names a second. A section without a pair falls back to a
+shared cut, then to the stand-in.
 
 `npm run build:artifact` embeds whatever is in `public/media/` as data URIs, so
 the single-file build carries its own sound. Base64 costs a third in size —

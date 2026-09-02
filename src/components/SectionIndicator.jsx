@@ -87,7 +87,7 @@ export default function SectionIndicator({
         role="button"
         data-claims-touch={armed && !committed}
         tabIndex={armed ? 0 : -1}
-        aria-label={`${section.action}. Drag ${section.dir}, or press space.`}
+        aria-label={`${section.actionLabel}. Drag ${section.dir}, or press space.`}
         aria-pressed={committed}
         className="absolute cursor-grab rounded-full focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-8 focus-visible:outline-gold-400 active:cursor-grabbing"
         style={{
@@ -113,7 +113,7 @@ export default function SectionIndicator({
           ref={copyRef}
           className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap pt-4 font-sans text-[0.58rem] font-light uppercase tracking-widest2 text-gold-300/90"
         >
-          {section.action}
+          {section.actionLabel}
         </span>
       </div>
     </div>

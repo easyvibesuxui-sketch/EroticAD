@@ -16,15 +16,19 @@ them is currently unmet — see *What the first clip tells us*.
 
 | Slot | File | Count |
 | --- | --- | --- |
-| Each section's clip | `public/media/sections/<nn>-<id>.mp4` | 10 |
+| Each section's approach | `public/media/sections/<nn>a-<id>.mp4` | 10 |
+| Each section's action | `public/media/sections/<nn>b-action.mp4` | 10 |
 | The bed | `public/media/track.mp3` | 1 ✅ |
 | The close layer (breath, fabric, room) | `public/media/breath.mp3` | 1 |
 
-A section names its own clip in `src/lib/sections.js` and carries its own
-timings with it, so clips need not all be the same length — section one is
-`autoplay: 8, scrub: 2`. A section with no clip yet falls back to a shared cut
-if one exists, and to the procedural stand-in if not, so the site runs with ten
-files, one, or none.
+**Deliver each section as two files**, split at the moment the action begins:
+the *approach*, which plays itself and ends, and the *action*, which the hand
+moves. That split is the whole timing model — there is no hold point to name or
+to get wrong, because the approach simply runs out and everything in the action
+clip belongs to the hand. It also lets each be encoded for what it does.
+
+A section with no pair falls back to a shared cut if one exists, and to the
+procedural stand-in if not, so the site runs with twenty files, two, or none.
 
 Delivered so far: **section 1** (`01-robe.mp4`) — 10.04s, 1280×720, 24fps.
 
@@ -69,21 +73,43 @@ within the central 26% of the width, or deliver the 9:16 cut with its own mark
 positions (`u`/`v` are film coordinates, so the same section can carry a second
 pair).
 
-## The shape of each clip
+## The shape of a section
 
 ```
-0s ─────────── 7.4s ══════ 10.0s      section one, as delivered
-   plays itself     the hand
+approach.mp4  ────────────►│  action.mp4  ◄════ the hand ════►
+   7.6s, plays itself      │     2.4s, never played
 ```
 
-**The split is per clip, not a rule.** Section one is `autoplay: 7.4,
-scrub: 2.6` because that is where its action actually begins — she rises and
-comes to the lens for the first seven and a half seconds, and the robe does not
-start to open until 7.40. Holding at the 8s default handed the first six-tenths
-of the action to the autoplay and left the hand with the leftovers.
+Section one, as delivered: a 7.63s approach and a 2.42s action. Nothing in the
+code names a time. Cut the two where the action starts and the split *is* the
+timing.
 
-**So say where the action starts.** One number per clip. Otherwise it gets
-measured off the frames, which works but is guesswork with better tools.
+**Encode them differently, because they do different things.**
+
+| | approach | action |
+| --- | --- | --- |
+| What happens to it | played once, never seeked | seeked constantly, never played |
+| GOP | ordinary (`-g 24`) | **all-intra (`-g 1`)** |
+| CRF | 21 | 20 |
+| Result for section one | 3.4 MB | 2.1 MB |
+
+All-intra means every frame is a keyframe, so a drag in either direction costs
+exactly one decode. On a clip this short it costs almost nothing: 2.1 MB for
+2.4 seconds. The two together are *smaller* than the single 6.5 MB file they
+replaced.
+
+```bash
+# approach — plays itself
+ffmpeg -i approach.mov -map 0:v:0 -c:v libx264 -profile:v high -pix_fmt yuv420p \
+  -crf 21 -preset slow -g 24 -an -movflags +faststart 01a-approach.mp4
+
+# action — only ever scrubbed
+ffmpeg -i action.mov -map 0:v:0 -c:v libx264 -profile:v high -pix_fmt yuv420p \
+  -crf 20 -preset slow -g 1 -an -movflags +faststart 01b-action.mp4
+```
+
+`-map 0:v:0` drops the audio and the MJPEG poster stream the exports carry;
+they were a third of the file.
 
 **Seconds 0–8 — the approach.** Normal filmmaking. It plays once, at speed,
 and stops. Land the hold on a frame worth stopping on: this is the
