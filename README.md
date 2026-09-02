@@ -41,8 +41,8 @@ in a different place, in a different direction.
 | | |
 | --- | --- |
 | Sections | 10 |
-| Autoplay per section | 8s |
-| Mechanical per section | 2s |
+| Autoplay per section | 8s by default, per clip in practice |
+| Mechanical per section | 2s by default, per clip in practice |
 | Film length | 100s, as ten clips |
 
 Ten ticks down the right edge show where you are; a tick turns **gold** when

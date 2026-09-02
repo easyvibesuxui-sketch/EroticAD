@@ -58,29 +58,39 @@ between a control and a slideshow, and it costs nothing.
 
 ### Framing: this shot does not survive the portrait crop
 
-At the eighth second the two hands sit at u≈0.23 and u≈0.78. On a 390×844
-phone the visible slice of a 16:9 film is u ∈ [0.37, 0.63] — so **neither hand
-is on screen**, and the action of the section is invisible. The torso fills the
-frame and nothing appears to happen.
+At the hold frame the two hands sit at u 0.36 and u 0.64, and they travel out to
+roughly u 0.10 and u 0.96. On a 390×844 phone the visible slice of a 16:9 film is
+u ∈ [0.37, 0.63] — so the hands start just inside it and **leave the frame
+almost immediately**. On a phone the section would begin and then appear to
+stop.
 
 This is the portrait-render requirement biting for real. Either frame the action
 within the central 26% of the width, or deliver the 9:16 cut with its own mark
 positions (`u`/`v` are film coordinates, so the same section can carry a second
 pair).
 
-## The shape of each ten seconds
+## The shape of each clip
 
 ```
-0s ─────────── 8s ══════ 10s
-   plays itself   the hand
+0s ─────────── 7.4s ══════ 10.0s      section one, as delivered
+   plays itself     the hand
 ```
+
+**The split is per clip, not a rule.** Section one is `autoplay: 7.4,
+scrub: 2.6` because that is where its action actually begins — she rises and
+comes to the lens for the first seven and a half seconds, and the robe does not
+start to open until 7.40. Holding at the 8s default handed the first six-tenths
+of the action to the autoplay and left the hand with the leftovers.
+
+**So say where the action starts.** One number per clip. Otherwise it gets
+measured off the frames, which works but is guesswork with better tools.
 
 **Seconds 0–8 — the approach.** Normal filmmaking. It plays once, at speed,
-and stops. Land the eighth second on a frame worth stopping on: this is the
+and stops. Land the hold on a frame worth stopping on: this is the
 image people look at while they work out what to do. It should be composed,
 still, and slightly unresolved.
 
-**Seconds 8–10 — the action.** One continuous physical movement, and only one:
+**The action.** One continuous physical movement, and only one:
 a strap slipping, hair going back, a ribbon coming loose. Rules for these two
 seconds:
 
@@ -190,7 +200,7 @@ silent. That is a fallback, not a plan.
 
 | # | Section | Action (last 2s) | Direction | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `robe` | Draw the robe open | down | ✅ delivered, re-encoded, mark placed |
+| 1 | `robe` | Draw the robe open (7.40 → 10.0) | right | ✅ delivered, re-encoded, mark placed |
 | 2 | `strap` | Slip the strap | down |
 | 3 | `clasp` | Open the clasp | left |
 | 4 | `lace` | Follow the lace | right |

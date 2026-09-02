@@ -72,23 +72,34 @@ export const SECTIONS = withInjected([
   section(0, {
     id: 'robe',
     src: '/media/sections/01-robe.mp4',
-    autoplay: 8,
-    scrub: 2,
+    // She rises and comes to the lens for the first seven and a half seconds.
+    // The robe does not begin to open until 7.40 — holding at 8.0, as the
+    // default did, handed the first six-tenths of the action to the autoplay
+    // and left the hand with the leftovers.
+    autoplay: 7.4,
+    scrub: 2.6,
     action: 'Draw the robe open',
     title: 'One',
     caption: 'It was never really closed.',
-    // Measured off the clip, not guessed: at the eighth second the near hand
-    // grips the robe here, and over the next two seconds it travels down and
-    // out. Down is the dominant axis by more than two to one, so that is the
-    // axis the drag reads.
-    u: 0.23,
-    v: 0.38,
-    dir: 'down',
-    length: 220,
+    /*
+     * Measured off the clip rather than guessed at. At 7.40 both hands rest at
+     * the centre, at v 0.37 — the near one at u 0.36, the far one at u 0.64 —
+     * and over the next two and a half seconds they travel *apart*: the left
+     * edge of the robe runs from u 0.28 to u 0.10, the right from u 0.77 to
+     * u 0.96. Outward, not downward, which is what the first pass got wrong.
+     *
+     * A straight drag can only follow one hand, so it follows the far one to
+     * the right: pushing forward opens the robe, pulling back closes it.
+     */
+    u: 0.64,
+    v: 0.37,
+    dir: 'right',
+    length: 230,
     // Tuned against the delivered footage rather than guessed at: 0.34 was set
     // before there was a film to look at, and it fogged this one past reading.
     steam: 0.22,
   }),
+
   section(1, {
     id: 'strap',
     action: 'Slip the strap',
