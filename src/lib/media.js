@@ -1,3 +1,5 @@
+import { asset } from './asset.js'
+
 /**
  * Media sources.
  *
@@ -28,19 +30,19 @@ const injected = (typeof window !== 'undefined' && window.__EROTICAD_MEDIA) || {
 export const MEDIA = {
   video: [
     ...(injected.video || []),
-    '/media/scene.mp4',
+    asset('/media/scene.mp4'),
     'https://mdn.github.io/shared-assets/videos/flower.mp4',
     'https://vjs.zencdn.net/v/oceans.mp4',
   ],
   music: [
     ...(injected.music || []),
-    '/media/track.mp3',
+    asset('/media/track.mp3'),
     'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
     'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   ],
   breath: [
     ...(injected.breath || []),
-    '/media/breath.mp3',
+    asset('/media/breath.mp3'),
     'https://mdn.github.io/webaudio-examples/audio-basics/outfoxing.mp3',
   ],
 }

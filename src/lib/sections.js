@@ -1,3 +1,5 @@
+import { asset } from './asset.js'
+
 /**
  * The film, cut into ten.
  *
@@ -66,8 +68,8 @@ const injectedSections =
 const withInjected = (list) =>
   list.map((s) => ({
     ...s,
-    ...(injectedSections[`${s.id}:approach`] ? { approach: injectedSections[`${s.id}:approach`] } : {}),
-    ...(injectedSections[`${s.id}:action`] ? { action: injectedSections[`${s.id}:action`] } : {}),
+    approach: asset(injectedSections[`${s.id}:approach`] ?? s.approach),
+    action: asset(injectedSections[`${s.id}:action`] ?? s.action),
   }))
 
 /*
