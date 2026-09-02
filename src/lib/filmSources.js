@@ -97,15 +97,36 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
     let clip = clips.get(key)
     if (!clip) {
       const el = createElement(src)
-      clip = { el, texture: configure(new THREE.VideoTexture(el)) }
+      clip = { el, texture: configure(new THREE.VideoTexture(el)), arrived: false }
+      // Latched, once. See `ready` below for why it must not be re-read.
+      const land = () => {
+        clip.arrived = true
+      }
+      el.addEventListener('loadeddata', land)
+      el.addEventListener('canplay', land)
       clips.set(key, clip)
     }
+    if (!clip.arrived && clip.el.readyState >= 2) clip.arrived = true
     return clip
   }
 
+  /**
+   * Has this clip ever had a frame to show?
+   *
+   * Deliberately latched rather than read live. `readyState` is not a property
+   * of the file, it is a property of the moment: a seek in flight drops it to
+   * HAVE_METADATA, and an action clip is *nothing but* seeks — measured at 97%
+   * of frames during a turn. Read live, the section spends most of the action
+   * believing its own footage is missing and cutting to the stand-in behind it,
+   * which is the stock clip flashing in under the hand.
+   *
+   * A clip that has shown a frame can show one again. The worst a stale latch
+   * can do is hold the previous frame a moment longer, which is what a film
+   * does anyway.
+   */
   const ready = (index, role) => {
     const clip = ensure(index, role)
-    return Boolean(clip && clip.el.readyState >= 2)
+    return Boolean(clip && clip.arrived)
   }
 
   const remember = (key, build) => {
@@ -135,15 +156,52 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
       },
     }))
 
+  /*
+   * A section with no footage of its own borrows the shared cut, and its slot
+   * in that cut is authored as ten seconds per section: 20 → 28 → 30 for the
+   * third, and so on out to a hundred.
+   *
+   * That only holds if the shared cut is really a hundred seconds long. The
+   * development stand-in is a few seconds, so every section past the first
+   * asked to play from a point past the end of the file — the playhead clamped
+   * short of it, never reached the hold, and the section sat in `playing` for
+   * ever: no mark, no action, nothing to finish. So when there is a real file
+   * behind this, the slot is laid inside the length it actually has.
+   */
+  const slotIn = (section) => {
+    const d = sharedVideo?.duration
+    if (!Number.isFinite(d) || d <= 0.5) {
+      return {
+        from: section.sharedStart,
+        hold: section.sharedAutoplayEnd,
+        to: section.sharedScrubEnd,
+      }
+    }
+    const usable = d - 0.1
+    // Start each section somewhere else in the file, so ten placeholders do not
+    // all open on the same frame.
+    const from = ((section.index * 0.13) % 0.34) * usable
+    const rest = usable - from
+    return { from, hold: from + rest * 0.72, to: from + rest }
+  }
+
   const fallback = (section) =>
     remember(`${section.index}:${sharedVideo ? 'shared' : 'standin'}`, () => ({
       kind: sharedVideo ? 'shared' : 'standin',
       el: sharedVideo,
       texture: sharedVideo ? sharedTexture : standInTexture,
-      playFrom: section.sharedStart,
-      playTo: section.sharedAutoplayEnd,
-      scrubFrom: section.sharedAutoplayEnd,
-      scrubTo: section.sharedScrubEnd,
+      get playFrom() {
+        return slotIn(section).from
+      },
+      get playTo() {
+        return slotIn(section).hold
+      },
+      get scrubFrom() {
+        return slotIn(section).hold
+      },
+      get scrubTo() {
+        return slotIn(section).to
+      },
     }))
 
   const api = {
@@ -172,15 +230,13 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
 
       const role = phase === 'armed' ? `step:${step}` : 'approach'
       const clip = ensure(index, role)
-      if (clip && clip.el.readyState >= 2) return clipSource(index, role, clip)
+      if (clip && clip.arrived) return clipSource(index, role, clip)
 
       // The action clip has not arrived yet: hold on the approach's last frame
       // rather than cutting to nothing.
       if (role !== 'approach') {
         const approach = ensure(index, 'approach')
-        if (approach && approach.el.readyState >= 2) {
-          return clipSource(index, 'approach', approach)
-        }
+        if (approach && approach.arrived) return clipSource(index, 'approach', approach)
       }
       return fallback(section)
     },
