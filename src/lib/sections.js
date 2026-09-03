@@ -310,19 +310,35 @@ export const SECTIONS = withInjected([
     steam: 0.3,
   }),
   section(5, {
-    id: 'ribbon',
+    id: 'tanga',
     product: {
-      name: 'Le Ruban',
-      price: 260,
-      note: 'Double-faced satin, a single knot',
+      name: 'Le Tanga',
+      price: 210,
+      note: 'Leavers lace, scalloped edge, no elastic anywhere',
       edition: 'One of ninety',
     },
-    actionLabel: 'Pull the ribbon',
     title: 'Six',
-    caption: 'It only ever held by one knot.',
-    u: 0.46,
+    caption: 'Two hands, and no hurry.',
+    approach: '/media/sections/06a-approach.mp4',
+    /*
+     * The only section whose action runs longer than its approach: 4.63s of
+     * film that plays itself against 5.38s that the hand has to turn. Nothing
+     * needed changing for that — the approach ends when it ends — but it does
+     * mean the longest, slowest pull in the collection, which suits what it is.
+     *
+     * Two hands take the lace down together, so unlike section one there is no
+     * choosing between them: they move as one and the guide follows the
+     * garment rather than a hand. Measured off the action clip, the waistband
+     * lies at u 0.43, v 0.54 in the first frame and v 0.83 in the last.
+     */
+    action: '/media/sections/06b-action.mp4',
+    actionLabel: 'Ease them down',
+    u: 0.43,
     v: 0.52,
-    dir: 'right',
+    dir: 'down',
+    // Asked for long and clamped to whatever the window can give: five and a
+    // half seconds of film should not go past under a flick of the wrist.
+    travel: 0.75,
   }),
   section(6, {
     id: 'glove',
