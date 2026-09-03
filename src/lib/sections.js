@@ -234,19 +234,36 @@ export const SECTIONS = withInjected([
     travel: 0.7,
   }),
   section(3, {
-    id: 'lace',
+    id: 'chambre',
     product: {
-      name: 'La Guêpière',
-      price: 740,
-      note: 'Leavers lace from Calais, silk-lined',
+      name: 'La Robe de Chambre',
+      price: 540,
+      note: 'Washed silk crepe, wrapped and tied, no fastening',
       edition: 'One of twenty',
     },
-    actionLabel: 'Follow the lace',
     title: 'Four',
-    caption: 'Leavers lace from Calais.',
-    u: 0.36,
-    v: 0.55,
-    dir: 'right',
+    caption: 'It was only ever resting there.',
+    approach: '/media/sections/04a-approach.mp4',
+    /*
+     * The second robe in the collection, and the only action so far that goes
+     * straight down: the wrap is pushed off the hips from behind and leaves the
+     * frame at the bottom.
+     *
+     * Measured off the action clip. The fabric's top edge lies across the hips
+     * at v 0.63 in the first frame and is gone by the last. The mark sits a
+     * little above it at v 0.60, which costs nothing in accuracy — the edge is
+     * a hand's width of cloth, not a point — and buys thirty pixels of travel
+     * before the bottom of the window cuts it off.
+     *
+     * u 0.5 is the best placement this film has had: dead centre horizontally,
+     * which is the one column a portrait phone is guaranteed to show.
+     */
+    action: '/media/sections/04b-action.mp4',
+    actionLabel: 'Push it down',
+    u: 0.5,
+    v: 0.6,
+    dir: 'down',
+    travel: 0.5,
     steam: 0.26,
   }),
   section(4, {
