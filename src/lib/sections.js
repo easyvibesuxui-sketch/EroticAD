@@ -267,19 +267,36 @@ export const SECTIONS = withInjected([
     steam: 0.26,
   }),
   section(4, {
-    id: 'silk',
+    id: 'culotte',
     product: {
-      name: 'Le Déshabillé',
-      price: 520,
-      note: 'Four-ply silk, unlined',
-      edition: 'One of forty',
+      name: 'La Culotte',
+      price: 180,
+      note: 'Cotton jersey, bonded edges, no seams anywhere',
+      edition: 'One of eighty',
     },
-    actionLabel: 'Draw the silk down',
     title: 'Five',
-    caption: 'Nothing under it but the light.',
-    u: 0.5,
-    v: 0.4,
+    caption: 'It only took one hand.',
+    approach: '/media/sections/05a-approach.mp4',
+    /*
+     * The first section shot in portrait: 720x1280, where every other one so
+     * far is 1280x720. Nothing here has to change for that — the stage
+     * cover-fits whatever aspect the current clip reports, and hotspots are in
+     * film coordinates, so the mark lands on the body either way. What changes
+     * is how much of the frame a given screen can show, and it is severe in
+     * both directions: a phone sees almost all of this clip, a landscape
+     * desktop sees a horizontal band across its middle.
+     *
+     * Measured off the action clip: the hand grips the waistband at u 0.40,
+     * v 0.66 and carries it down to v 0.88. The mark sits just above the grip.
+     */
+    action: '/media/sections/05b-action.mp4',
+    actionLabel: 'Take them down',
+    u: 0.4,
+    v: 0.64,
     dir: 'down',
+    // A short action — one and two-thirds seconds, the briefest in the film —
+    // so it wants a short pull rather than a long one.
+    travel: 0.45,
     steam: 0.3,
   }),
   section(5, {
