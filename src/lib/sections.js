@@ -202,11 +202,11 @@ export const SECTIONS = withInjected([
     steam: 0.2,
   }),
   section(2, {
-    id: 'clasp',
+    id: 'maillot',
     product: {
-      name: 'Le Corset',
-      price: 590,
-      note: 'Coutil and aged brass, boned by hand',
+      name: 'Le Maillot',
+      price: 390,
+      note: 'Matte jersey, fully lined, seams closed by hand',
       edition: 'One of thirty',
     },
     title: 'Three',
