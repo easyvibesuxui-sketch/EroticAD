@@ -38,10 +38,52 @@ const styles = readFileSync(join(DIST, css), 'utf8')
  *
  * Section clips come first: they are the film, and the film is the subject.
  */
-// Below the hard 16 MB page limit on purpose. This file is opened over whatever
-// connection the person sharing it has; the last two megabytes of a music loop
-// are not worth the wait.
+/*
+ * Counted in MiB, while the 16 MB page limit that matters is very likely
+ * decimal: 15.5 MiB measured here came out at 15.98 million bytes, which is
+ * 22 kB under the line. A page that overruns does not publish at all, so the
+ * margin stays wide. Everything above the footage's own needs goes to the
+ * music loop, which is the only thing here that gets shorter rather than
+ * disappearing.
+ */
 const CEILING_MB = 15
+
+/**
+ * A VBR MP3 does not carry its length in its frames — it carries it in a Xing
+ * (or Info) header in the very first one, and every player believes that header
+ * over the data behind it.
+ *
+ * So a file cut short by dropping frames still announces the original running
+ * time, and the element loops on *that*: it plays the audio it has, stalls at
+ * the cut with three minutes still to go on the clock, and eventually gives up
+ * and starts over. Which is exactly "it only plays a little bit".
+ *
+ * Rewriting the header is the whole fix. The frame count and byte count are
+ * set to what the file now holds, and the seek table and quality flags are
+ * cleared — their old contents describe a file that no longer exists.
+ */
+function reframeXing(buf, frames, frameStart) {
+  /*
+   * The header sits inside the first audio frame, past a side-info gap whose
+   * size depends on the channel mode — 36 bytes in for a stereo MPEG-1 file.
+   * Searching from the start of that frame rather than from the start of the
+   * file is what makes this reliable: an ID3 tag in front of it can be any
+   * length at all, and on this track it is 168 bytes, which put the magic at
+   * byte 204 and just outside a fixed window.
+   */
+  const from = frameStart
+  const limit = Math.min(buf.length - 16, from + 64)
+  for (let i = from; i < limit; i += 1) {
+    const tag = buf.toString('latin1', i, i + 4)
+    if (tag !== 'Xing' && tag !== 'Info') continue
+    // FRAMES | BYTES, and nothing else: a stale table is worse than none.
+    buf.writeUInt32BE(0x0003, i + 4)
+    buf.writeUInt32BE(frames, i + 8)
+    buf.writeUInt32BE(buf.length, i + 12)
+    return true
+  }
+  return false
+}
 
 /**
  * MP3 frames are self-delimiting, so a track can be shortened by walking the
@@ -56,7 +98,9 @@ function trimMp3(buf, seconds) {
   if (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
     i = 10 + ((buf[6] & 0x7f) << 21 | (buf[7] & 0x7f) << 14 | (buf[8] & 0x7f) << 7 | (buf[9] & 0x7f))
   }
+  const frameStart = i
   let played = 0
+  let frames = 0
   while (i < buf.length - 4) {
     if (buf[i] !== 0xff || (buf[i + 1] & 0xe0) !== 0xe0) { i++; continue }
     const br = BITRATES[(buf[i + 2] >> 4) & 0xf]
@@ -65,10 +109,16 @@ function trimMp3(buf, seconds) {
     const len = ((144 * br * 1000) / sr | 0) + ((buf[i + 2] >> 1) & 1)
     if (len <= 0) { i++; continue }
     played += 1152 / sr
+    frames += 1
     i += len
     if (played >= seconds) break
   }
-  return buf.subarray(0, i)
+  // A copy, because the header is about to be rewritten and the original buffer
+  // may still be wanted at full length.
+  const cut = Buffer.from(buf.subarray(0, i))
+  // The Xing frame is a header, not audio: it is not counted in `frames`.
+  reframeXing(cut, Math.max(frames - 1, 1), frameStart)
+  return cut
 }
 
 /*
