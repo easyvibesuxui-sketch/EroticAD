@@ -209,12 +209,29 @@ export const SECTIONS = withInjected([
       note: 'Coutil and aged brass, boned by hand',
       edition: 'One of thirty',
     },
-    actionLabel: 'Open the clasp',
     title: 'Three',
-    caption: 'Solid brass, aged by hand.',
-    u: 0.58,
-    v: 0.46,
-    dir: 'left',
+    caption: 'It opens crosswise.',
+    approach: '/media/sections/03a-approach.mp4',
+    /*
+     * One action, drawn along a line, because that is what the movement is:
+     * the whole three seconds open sideways. No ring here — the guide is the
+     * shape of the thing it is guiding, and this one is not a turn.
+     *
+     * Two things travel and they travel apart, so a straight drag can only
+     * follow one of them, the same bargain section one makes. It follows the
+     * knee on the right, measured off the action clip: u 0.63 at the first
+     * frame and u 0.75 by the last, with the foot carrying on out to 0.88.
+     * The mark starts a little inboard of that, at u 0.60, to keep it on
+     * screen when a portrait phone crops the frame to its middle.
+     */
+    action: '/media/sections/03b-action.mp4',
+    actionLabel: 'Open her',
+    u: 0.6,
+    v: 0.42,
+    dir: 'right',
+    // Three and a fifth seconds of film, against section one's two and a half:
+    // a longer pull, so it takes about as long to draw through as it runs.
+    travel: 0.7,
   }),
   section(3, {
     id: 'lace',

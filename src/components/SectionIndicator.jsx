@@ -68,18 +68,38 @@ export default function SectionIndicator({
       )
 
       /*
-       * A circle needs room on every side, and a portrait phone crops a 16:9
-       * frame so hard that a point at u 0.4 lands 45px from the left edge —
-       * most of the ring off-screen and no way to turn it. So the centre is
-       * pushed back inside the viewport, the same bargain the straight mark
-       * makes when it clamps its travel: the guide drifts off the exact spot on
-       * the body rather than becoming unusable. On any screen with room for it,
-       * this changes nothing.
+       * Keep the whole guide on screen.
+       *
+       * A portrait phone crops a 16:9 frame to its middle third, which puts
+       * plenty of perfectly good hotspots within a few pixels of an edge — and
+       * a control you cannot reach the far end of is not a control. `travel`
+       * is already clamped to the room available, but it has a floor beneath
+       * which it has no resolution left, so on a narrow screen the floor wins
+       * and the dashes run off the frame. The ring has it worse: it needs room
+       * on every side at once.
+       *
+       * So the mark is pushed back inboard until it fits. It drifts off the
+       * exact spot on the body, which is the lesser loss. On any screen with
+       * room for it, this changes nothing at all.
        */
+      const vw = window.innerWidth
+      const vh = window.innerHeight
       if (ring) {
         const m = radius + 26
-        p.x = Math.min(Math.max(p.x, m), window.innerWidth - m)
-        p.y = Math.min(Math.max(p.y, m), window.innerHeight - m)
+        p.x = Math.min(Math.max(p.x, m), vw - m)
+        p.y = Math.min(Math.max(p.y, m), vh - m)
+      } else {
+        const m = 24
+        const endX = p.x + dx * travel
+        const endY = p.y + dy * travel
+        if (endX > vw - m) p.x -= endX - (vw - m)
+        else if (endX < m) p.x += m - endX
+        if (endY > vh - m) p.y -= endY - (vh - m)
+        else if (endY < m) p.y += m - endY
+        // ...and never past the near edge either, which a very short window
+        // could otherwise do while fixing the far one.
+        p.x = Math.min(Math.max(p.x, m), vw - m)
+        p.y = Math.min(Math.max(p.y, m), vh - m)
       }
 
       // The angular drag measures from the centre of the circle, which is this
@@ -107,7 +127,7 @@ export default function SectionIndicator({
 
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [aspectRef, armed, centreRef, dragging, progressRef, radius, ring, step])
+  }, [aspectRef, armed, centreRef, dragging, dx, dy, progressRef, radius, ring, step, travel])
 
   const live = armed && !committed
 
