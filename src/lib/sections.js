@@ -278,25 +278,35 @@ export const SECTIONS = withInjected([
     caption: 'It only took one hand.',
     approach: '/media/sections/05a-approach.mp4',
     /*
-     * The first section shot in portrait: 720x1280, where every other one so
-     * far is 1280x720. Nothing here has to change for that — the stage
-     * cover-fits whatever aspect the current clip reports, and hotspots are in
-     * film coordinates, so the mark lands on the body either way. What changes
-     * is how much of the frame a given screen can show, and it is severe in
-     * both directions: a phone sees almost all of this clip, a landscape
-     * desktop sees a horizontal band across its middle.
+     * This one was shot in portrait, 720x1280, where every other clip is
+     * 1280x720. The code needed nothing for that — the stage cover-fits
+     * whatever aspect the current clip reports — but the framing did: a
+     * landscape window can only show a band across a portrait frame's middle,
+     * v 0.32 to 0.68 at 1280x800, and the action ran from v 0.66 to 0.88. The
+     * hand left the visible band a third of the way through the pull.
      *
-     * Measured off the action clip: the hand grips the waistband at u 0.40,
-     * v 0.66 and carries it down to v 0.88. The mark sits just above the grip.
+     * So both clips are cut to 16:9 around the action: a 720x405 window at
+     * y 790, upscaled to 1280x720.
+     *
+     * The approach could not take that window fixed. It is a different shot —
+     * she is at the basin, drinking from the tap, and the hips only matter in
+     * its last half-second — so a hip-level crop would have thrown away all
+     * seven seconds of it. Its window drifts instead, from head-and-chest down
+     * to exactly the window the action holds, arriving there as the clip ends.
+     * It reads as a slow push down rather than as a crop, and it keeps the cut
+     * between the two clips invisible, which is the whole point of the pair.
+     *
+     * Measured off the cut action clip: the grip starts at u 0.36, v 0.125 and
+     * carries down to v 0.76 — 0.635 of the frame's height. The mark sits just
+     * above it, and travel is set so the ring finishes about where the hand
+     * does rather than short of it.
      */
     action: '/media/sections/05b-action.mp4',
     actionLabel: 'Take them down',
-    u: 0.4,
-    v: 0.64,
+    u: 0.36,
+    v: 0.11,
     dir: 'down',
-    // A short action — one and two-thirds seconds, the briefest in the film —
-    // so it wants a short pull rather than a long one.
-    travel: 0.45,
+    travel: 0.55,
     steam: 0.3,
   }),
   section(5, {
