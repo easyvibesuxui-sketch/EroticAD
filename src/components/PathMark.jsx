@@ -1,20 +1,21 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react'
 
+import { pointAtDistance } from '../lib/layout.js'
+
 /*
- *  The mark, bent into a circle.
+ *  The mark, bent along a route.
  *
- *  Everything the straight mark says, said around a centre: a dashed arc for
- *  where the hand goes, a solid one growing behind it for how far it has come,
- *  a terminus where it ends, and the same ring-with-a-chevron riding it with
- *  its own progress closing around it.
+ *  The same four things the straight mark says — dashed guide, solid trail
+ *  behind, terminus at the end, ring with a chevron riding it — laid along an
+ *  arbitrary polyline instead of a line or a circle.
  *
- *  It exists because not every action is a pull. Two hands rolling a hem down
- *  turn about a point, and a straight line through that is a lie about the
- *  movement — the guide should be the shape of the thing it is guiding.
+ *  It exists for an action that is neither a pull nor a turn. A tongue at a
+ *  stream of water goes back and forth, and a straight line through that says
+ *  the wrong thing about it; the guide should be the shape of the movement.
  *
- *  The chevron is kept tangent to the arc, so it always points the way the hand
- *  is being asked to go. Turn the ring over — a negative `spin` — and it points
- *  the other way round with no other change.
+ *  The chevron is kept tangent to whichever segment the ring is on, so at every
+ *  corner it turns to point down the next one — which is how the route tells
+ *  the hand that it changes direction here.
  *
  *  Nothing here re-renders while the hand moves; the section drives it straight
  *  into the DOM through the imperative handle.
@@ -22,39 +23,30 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react'
 
 const RING_R = 18
 const TERMINUS_R = 3.5
-const PAD = 6
+const PAD = 26
 
-const rad = (deg) => (deg * Math.PI) / 180
-
-const RingMark = forwardRef(function RingMark(
-  { radius = 150, sweep = 250, start = -140, spin = 1 },
-  ref,
-) {
+const PathMark = forwardRef(function PathMark({ path }, ref) {
   const rootRef = useRef(null)
   const handleRef = useRef(null)
   const progressRef = useRef(null)
   const guideRef = useRef(null)
   const trailRef = useRef(null)
 
-  const reach = radius + RING_R + PAD
-  const size = reach * 2
-  const c = reach
-
   const geometry = useMemo(() => {
-    const end = start + spin * sweep
-    const at = (deg) => [c + radius * Math.cos(rad(deg)), c + radius * Math.sin(rad(deg))]
-    const [x0, y0] = at(start)
-    const [x1, y1] = at(end)
-    // An SVG arc needs to be told whether it is the long way round and which
-    // way it turns; both fall straight out of the sweep and the spin.
-    const large = Math.abs(sweep) > 180 ? 1 : 0
-    const sweepFlag = spin > 0 ? 1 : 0
-    return {
-      d: `M ${x0} ${y0} A ${radius} ${radius} 0 ${large} ${sweepFlag} ${x1} ${y1}`,
-      arcLen: 2 * Math.PI * radius * (Math.abs(sweep) / 360),
-      terminus: [x1, y1],
-    }
-  }, [c, radius, spin, start, sweep])
+    const xs = path.points.map((p) => p.x)
+    const ys = path.points.map((p) => p.y)
+    // The SVG is placed by its own origin, so the box has to hold whatever the
+    // route does either side of it, plus the ring that rides it.
+    const minX = Math.min(...xs) - RING_R - PAD
+    const minY = Math.min(...ys) - RING_R - PAD
+    const width = Math.max(...xs) + RING_R + PAD - minX
+    const height = Math.max(...ys) + RING_R + PAD - minY
+    const d = path.points
+      .map((p, i) => `${i ? 'L' : 'M'} ${p.x - minX} ${p.y - minY}`)
+      .join(' ')
+    const end = path.points[path.points.length - 1]
+    return { minX, minY, width, height, d, endX: end.x - minX, endY: end.y - minY }
+  }, [path])
 
   const ringArc = useMemo(() => 2 * Math.PI * RING_R, [])
 
@@ -64,13 +56,15 @@ const RingMark = forwardRef(function RingMark(
       place(x, y) {
         const root = rootRef.current
         if (!root) return
-        root.style.left = `${x}px`
-        root.style.top = `${y}px`
+        // The origin of the route is the film hotspot, so the box is offset by
+        // however far the route reaches back and up from it.
+        root.style.left = `${x + geometry.minX}px`
+        root.style.top = `${y + geometry.minY}px`
       },
 
       /**
        * @param {number} presence 0..1 — how much of the mark exists yet
-       * @param {number} progress 0..1 — how far the action has been turned
+       * @param {number} progress 0..1 — how far along the route the hand is
        * @param {boolean} live    the hand is on it right now
        */
       paint(presence, progress, live) {
@@ -78,16 +72,12 @@ const RingMark = forwardRef(function RingMark(
         if (!root) return
 
         root.style.opacity = String(presence)
-        root.style.transform = `translate(-50%, -50%) scale(${0.9 + presence * 0.1})`
 
         if (handleRef.current) {
-          // Round to where the hand has got, then turn the chevron to face the
-          // way it is going: tangent to the arc, which is a quarter turn off
-          // the radius, and the other quarter when the ring is turned over.
-          const angle = start + spin * sweep * progress
+          const at = pointAtDistance(path.points, path.cum, progress * path.length)
           handleRef.current.setAttribute(
             'transform',
-            `rotate(${angle} ${c} ${c}) translate(${radius} 0) rotate(${spin > 0 ? 90 : -90} ${c} ${c})`,
+            `translate(${at.x - geometry.minX} ${at.y - geometry.minY}) rotate(${at.angle})`,
           )
         }
         if (progressRef.current) {
@@ -98,23 +88,23 @@ const RingMark = forwardRef(function RingMark(
           guideRef.current.style.opacity = String(0.5 - progress * 0.34 + (live ? 0.2 : 0))
         }
         if (trailRef.current) {
-          trailRef.current.style.strokeDashoffset = String(geometry.arcLen * (1 - progress))
+          trailRef.current.style.strokeDashoffset = String(path.length * (1 - progress))
         }
       },
     }),
-    [c, geometry.arcLen, radius, ringArc, spin, start, sweep],
+    [geometry, path, ringArc],
   )
 
   return (
     <div
       ref={rootRef}
       className="pointer-events-none absolute"
-      style={{ left: 0, top: 0, opacity: 0, transform: 'translate(-50%, -50%)' }}
+      style={{ left: 0, top: 0, opacity: 0 }}
     >
       <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
+        width={geometry.width}
+        height={geometry.height}
+        viewBox={`0 0 ${geometry.width} ${geometry.height}`}
         className="overflow-visible"
         style={{
           /* A gold glow alone vanishes on bright footage — this is the first
@@ -132,6 +122,7 @@ const RingMark = forwardRef(function RingMark(
           stroke="#d9a441"
           strokeWidth="1.2"
           strokeLinecap="round"
+          strokeLinejoin="round"
           strokeDasharray="1.5 6"
           className="animate-dashFlow"
           style={{ opacity: 0.5 }}
@@ -143,21 +134,14 @@ const RingMark = forwardRef(function RingMark(
           stroke="#f2dcae"
           strokeWidth="1"
           strokeLinecap="round"
+          strokeLinejoin="round"
           strokeOpacity="0.5"
-          style={{ strokeDasharray: geometry.arcLen, strokeDashoffset: geometry.arcLen }}
+          style={{ strokeDasharray: path.length, strokeDashoffset: path.length }}
         />
-        <circle
-          cx={geometry.terminus[0]}
-          cy={geometry.terminus[1]}
-          r={TERMINUS_R}
-          fill="#e8c684"
-          opacity="0.9"
-        />
+        <circle cx={geometry.endX} cy={geometry.endY} r={TERMINUS_R} fill="#e8c684" opacity="0.9" />
 
-        <g ref={handleRef} transform={`rotate(${start} ${c} ${c}) translate(${radius} 0)`}>
+        <g ref={handleRef} transform="translate(0 0)">
           <circle
-            cx={c}
-            cy={c}
             r={RING_R}
             fill="rgba(10,5,7,0.22)"
             stroke="#d9a441"
@@ -166,18 +150,16 @@ const RingMark = forwardRef(function RingMark(
           />
           <circle
             ref={progressRef}
-            cx={c}
-            cy={c}
             r={RING_R}
             fill="none"
             stroke="#f2dcae"
             strokeWidth="1.7"
             strokeLinecap="round"
-            transform={`rotate(-90 ${c} ${c})`}
+            transform="rotate(-90)"
             style={{ strokeDasharray: ringArc, strokeDashoffset: ringArc }}
           />
           <path
-            d={`M ${c - 3.5} ${c - 5.5} L ${c + 3} ${c} L ${c - 3.5} ${c + 5.5}`}
+            d="M -3.5 -5.5 L 3 0 L -3.5 5.5"
             fill="none"
             stroke="#f2dcae"
             strokeWidth="1.35"
@@ -190,4 +172,4 @@ const RingMark = forwardRef(function RingMark(
   )
 })
 
-export default RingMark
+export default PathMark

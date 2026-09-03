@@ -62,12 +62,18 @@ const section = (i, rest) => {
    * next; winding the first one back past its start hands it back again.
    */
   const steps = (base.steps ?? [{ src: base.action }]).map((step, n) => ({
-    /** 'line' is a straight pull; 'ring' is a turn about a centre. */
-    track: 'line',
+    /*
+     * 'line' is a straight pull, 'ring' a turn about a centre, 'zigzag' a
+     * route the hand has to trace. A section that says nothing means a line.
+     */
+    track: base.track ?? 'line',
     u: base.u,
     v: base.v,
     dir: base.dir ?? 'right',
     travel: base.travel,
+    span: base.span,
+    amplitude: base.amplitude,
+    teeth: base.teeth,
     label: base.actionLabel,
     ...step,
     n,
@@ -341,19 +347,41 @@ export const SECTIONS = withInjected([
     travel: 0.75,
   }),
   section(6, {
-    id: 'glove',
+    id: 'chaine',
     product: {
-      name: 'Les Gants',
-      price: 190,
-      note: 'Elbow length, seamed at the wrist',
-      edition: 'One of sixty',
+      name: 'La Chaîne',
+      price: 460,
+      note: 'Silver chain over a bare cup, hooked at the spine',
+      edition: 'One of twenty-five',
     },
-    actionLabel: 'Peel the glove',
     title: 'Seven',
-    caption: 'Elbow length, seamed at the wrist.',
-    u: 0.62,
-    v: 0.44,
-    dir: 'down',
+    caption: 'She stopped for the water, not for you.',
+    approach: '/media/sections/07a-approach.mp4',
+    /*
+     * Neither a pull nor a turn. She is at a drinking fountain with her tongue
+     * out to the stream, and the movement is back and forth — so the guide is
+     * a zigzag and the hand has to make the same shape.
+     *
+     * It is a route, not a decoration: `usePathDrag` only advances while the
+     * hand is inside a corridor around the line, so cutting the corners moves
+     * nothing. The film answers to distance travelled along the polyline.
+     *
+     * Measured off the action clip: the tongue is at u 0.75, v 0.54 in the
+     * first frame and has drawn back to u 0.70 by the last. The route starts
+     * at the tongue and runs left, the way the head goes.
+     */
+    action: '/media/sections/07b-action.mp4',
+    actionLabel: 'Follow her tongue',
+    track: 'zigzag',
+    u: 0.75,
+    v: 0.54,
+    dir: 'left',
+    /** Length of the route's axis, as a fraction of the shorter side. */
+    span: 0.42,
+    /** How far the teeth swing either side of it. */
+    amplitude: 0.055,
+    teeth: 4,
+    steam: 0.2,
   }),
   section(7, {
     id: 'sheet',

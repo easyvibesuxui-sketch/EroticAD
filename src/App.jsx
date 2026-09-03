@@ -17,9 +17,11 @@ import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
 import { useAngularDrag } from './hooks/useAngularDrag.js'
 import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
+import { usePathDrag } from './hooks/usePathDrag.js'
 import { useReducedMotion } from './hooks/useReducedMotion.js'
 import { useMarkTravel } from './hooks/useMarkTravel.js'
 import { useRingRadius } from './hooks/useRingRadius.js'
+import { useZigzagPath } from './hooks/useZigzagPath.js'
 import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
@@ -68,6 +70,7 @@ export default function App() {
   const action = section.steps[stepIndex]
   const isLastStep = stepIndex === section.steps.length - 1
   const ring = action.track === 'ring'
+  const route = action.track === 'zigzag'
 
   const toggleSound = useCallback(() => {
     setMuted((prev) => {
@@ -130,6 +133,7 @@ export default function App() {
 
   const travel = useMarkTravel(action, aspectRef)
   const radius = useRingRadius(action)
+  const path = useZigzagPath(action)
 
   /*
    * Both controls exist; only the one this step calls for is enabled, and only
@@ -141,7 +145,7 @@ export default function App() {
   const linear = useDirectionalDrag({
     dir: action.dir,
     length: travel,
-    enabled: transport === 'armed' && !ring,
+    enabled: transport === 'armed' && !ring && !route,
     progressRef,
     onCommit: handleCommit,
     onUndo: handleUndo,
@@ -160,7 +164,17 @@ export default function App() {
     onExitBack: handleExitBack,
   })
 
-  const drag = ring ? angular : linear
+  const along = usePathDrag({
+    path,
+    originRef: centreRef,
+    enabled: transport === 'armed' && route,
+    progressRef,
+    onCommit: handleCommit,
+    onUndo: handleUndo,
+    onFull: handleFull,
+  })
+
+  const drag = ring ? angular : route ? along : linear
 
   // A new section is a new action: whatever was wound on the last one goes
   // back to zero, or the next mark would open already half-used. The transport
@@ -169,15 +183,17 @@ export default function App() {
   // new section's footage.
   const linearReset = linear.reset
   const angularReset = angular.reset
+  const alongReset = along.reset
   useEffect(() => {
     enterAtRef.current = 0
     setStep(0)
     stepRef.current = 0
     linearReset()
     angularReset(0)
+    alongReset()
     audioRef.current?.stopAfter()
     setTransport('playing')
-  }, [active, angularReset, linearReset])
+  }, [active, alongReset, angularReset, linearReset])
 
   /*
    * Handing over between the clips inside a section. The film needs no seek:
@@ -189,8 +205,9 @@ export default function App() {
     const at = enterAtRef.current
     progressRef.current = at
     if (ring) angularReset(at)
+    else if (route) alongReset()
     else linearReset()
-  }, [angularReset, linearReset, ring, stepIndex])
+  }, [alongReset, angularReset, linearReset, ring, route, stepIndex])
 
   const handleEnter = useCallback(async () => {
     if (phase !== 'gate') return
@@ -287,6 +304,7 @@ export default function App() {
             step={action}
             travel={travel}
             radius={radius}
+            path={path}
             centreRef={centreRef}
             aspectRef={aspectRef}
             armed={transport === 'armed'}

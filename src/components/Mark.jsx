@@ -91,7 +91,13 @@ const Mark = forwardRef(function Mark({ dir = 'right', length = 96 }, ref) {
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="overflow-visible"
-        style={{ filter: 'drop-shadow(0 0 8px rgba(217,164,65,0.35))' }}
+        style={{
+          /* A gold glow alone vanishes on bright footage — this is the first
+             sunlit shot in the film and the guide all but disappeared on it. The
+             dark shadow under it is the same bargain the type makes. */
+          filter:
+            'drop-shadow(0 1px 2px rgba(4,2,3,0.9)) drop-shadow(0 0 8px rgba(217,164,65,0.35))',
+        }}
         aria-hidden="true"
       >
         <g transform={`rotate(${angle} ${c} ${c})`}>

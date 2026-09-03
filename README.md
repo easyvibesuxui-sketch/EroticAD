@@ -41,6 +41,21 @@ scroll to a section
 Then scroll on. The next section does the same thing with a different action,
 in a different place, in a different direction.
 
+**Three guide shapes.** A straight pull, a turn about a centre, and a route the
+hand has to trace. Which one a step uses is the step's own business — the mark,
+the drag and the hit surface all follow from `track`.
+
+```
+line     Mark.jsx      useDirectionalDrag   travel projected onto a direction
+ring     RingMark.jsx  useAngularDrag       the angle the hand stands at
+zigzag   PathMark.jsx  usePathDrag          distance along a polyline
+```
+
+The route is a route and not a decoration: `usePathDrag` only advances while
+the hand is inside a corridor around the line, so cutting the corners of a
+zigzag moves nothing at all. Verified — a straight drag across section seven's
+guide leaves the film exactly where it was.
+
 **A section can be more than one action.** Most are one clip pulled along a
 line. Section two is two clips, each turned around a circle — both hands take
 the lace and roll it down, and a roll is a turn, so the guide is a ring and the
