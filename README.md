@@ -96,6 +96,25 @@ the product; nothing in the interface is allowed to dim it.
 
 ---
 
+## An action clip has to be all there before the hand gets it
+
+An approach is only ever played, so its first frames are enough to start it. An
+action is only ever *seeked*, and the hand can ask for any moment in it the
+instant it appears — so the front of the file is not enough. Arming on it means
+the picture freezes under the hand and lurches when the rest lands.
+
+`filmSources.ready` therefore means two different things by design: an approach
+has to have started, an action has to be buffered end to end (`whole`). Measured
+on a 700 kbit connection before the distinction existed, section six armed with
+1.58s of a 5.38s clip and froze for 123 frames out of 243; after, it arms with
+all 5.38s and freezes for 4 out of 124.
+
+A section that never arms would be worse than one that scrubs roughly — no mark,
+nothing to do, no way to finish it — so `ARM_PATIENCE` hands the film over
+anyway after eight seconds of waiting.
+
+---
+
 ## Why the last two seconds are scrubbed, not played
 
 A played animation happens *to* you. A scrubbed one happens *because of* you,

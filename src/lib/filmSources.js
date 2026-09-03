@@ -111,6 +111,24 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
   }
 
   /**
+   * Is the whole clip here, not just the front of it?
+   *
+   * An approach is only ever played, so its first frames are enough to start.
+   * An action is only ever *seeked*, and the hand can ask for any moment in it
+   * the instant it appears — so for that one, the front of the file is not
+   * enough and arming on it means the picture freezes under the hand and then
+   * lurches when the rest lands. Measured on a 700kbit connection: section six
+   * armed with 1.58s of a 5.38s clip and froze for half the drag.
+   */
+  const whole = (el) => {
+    if (el.readyState >= 4) return true
+    const d = el.duration
+    if (!Number.isFinite(d) || d <= 0) return false
+    const b = el.buffered
+    return b.length > 0 && b.end(b.length - 1) >= d - 0.25
+  }
+
+  /**
    * Has this clip ever had a frame to show?
    *
    * Deliberately latched rather than read live. `readyState` is not a property
@@ -126,7 +144,9 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
    */
   const ready = (index, role) => {
     const clip = ensure(index, role)
-    return Boolean(clip && clip.arrived)
+    if (!clip) return false
+    // An approach only has to have started; an action has to be all there.
+    return role === 'approach' ? clip.arrived : clip.arrived && whole(clip.el)
   }
 
   const remember = (key, build) => {

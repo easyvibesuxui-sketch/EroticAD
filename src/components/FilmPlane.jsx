@@ -11,6 +11,13 @@ import { SECTIONS } from '../lib/sections.js'
 const SPARK_SECONDS = 0.9
 
 /**
+ * How long to hold on the approach's last frame waiting for the action clip to
+ * arrive in full before handing it over anyway. A section that never arms has
+ * no mark and nothing to do, which is worse than one that scrubs roughly.
+ */
+const ARM_PATIENCE = 8
+
+/**
  * The film, and the machine that runs it.
  *
  * One fixed plane behind ten scrolling sections. Every frame it asks where the
@@ -41,6 +48,7 @@ export default function FilmPlane({
   const phaseRef = useRef('idle')
   const sourceKeyRef = useRef('')
   const sectionRef = useRef(-1)
+  const waitingSinceRef = useRef(0)
   const beatRef = useRef(0)
   const steamRef = useRef(1)
   const sparkStateRef = useRef({ amount: 0, at: 0 })
@@ -94,6 +102,7 @@ export default function FilmPlane({
     // the last one was left armed.
     if (section.index !== sectionRef.current) {
       sectionRef.current = section.index
+      waitingSinceRef.current = 0
       phaseRef.current = 'playing'
       onPhaseChange?.('playing')
     }
@@ -126,10 +135,19 @@ export default function FilmPlane({
       // second and would overshoot the end of the approach by a fifth of one.
       if (playhead.time >= source.playTo - 0.05) {
         playhead.pause()
-        // Hold on the last frame of the approach until the action clip can
-        // take over; cutting to an unbuffered clip shows black.
-        const canArm = !step.src || sources.ready(section.index, `step:${stepIndex}`)
-        if (canArm) setPhase('armed')
+        // Hold on the last frame of the approach until the action clip is not
+        // merely present but scrubbable end to end — see `whole` in
+        // filmSources. Cutting to a clip that is only partly there means the
+        // picture freezes under the hand and lurches when the rest arrives.
+        if (!waitingSinceRef.current) waitingSinceRef.current = t
+        const ready = !step.src || sources.ready(section.index, `step:${stepIndex}`)
+        /*
+         * Except that a section which never arms is worse than one that stalls:
+         * there would be no mark, nothing to do, and no way to finish it. After
+         * this long the hand gets the film whatever state it is in.
+         */
+        const waited = t - waitingSinceRef.current > ARM_PATIENCE
+        if (ready || waited) setPhase('armed')
       }
     }
 
