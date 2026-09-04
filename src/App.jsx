@@ -14,6 +14,7 @@ import { Playhead } from './lib/Playhead.js'
 import { createFilmSources } from './lib/filmSources.js'
 import { SECTIONS } from './lib/sections.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
+import { createPrefetcher } from './lib/prefetch.js'
 import { createStandIn } from './lib/standin.js'
 import { useAngularDrag } from './hooks/useAngularDrag.js'
 import { useDirectionalDrag } from './hooks/useDirectionalDrag.js'
@@ -51,6 +52,7 @@ export default function App() {
    */
   const progressRef = useRef(0)
   const centreRef = useRef({ x: 0, y: 0 })
+  const prefetchRef = useRef(null)
   /** Where the next step opens: 0 coming forward, 1 coming back. */
   const enterAtRef = useRef(0)
 
@@ -232,6 +234,7 @@ export default function App() {
     const playhead = new Playhead(null)
     const sources = createFilmSources({ sections: SECTIONS, sharedVideo: video, standIn })
     sources.prepare(0)
+    prefetchRef.current = createPrefetcher({ sections: SECTIONS })
 
     setSource({ playhead, sources, standIn })
 
@@ -249,6 +252,19 @@ export default function App() {
     }
   }, [phase])
 
+  /*
+   * The background queue, and the only two things it is allowed to know: which
+   * section the page is on, and whether anything more urgent is happening. The
+   * hand on the mark and a section still loading its own clips both count as
+   * more urgent — see `prefetch.js`.
+   */
+  useEffect(() => {
+    const idle = transport === 'armed' && !drag.dragging
+    prefetchRef.current?.setBusy(!idle)
+    if (idle) prefetchRef.current?.want(active)
+  }, [active, drag.dragging, transport])
+
+  useEffect(() => () => prefetchRef.current?.dispose(), [])
   useEffect(() => () => audioRef.current?.dispose(), [])
   useEffect(() => () => source?.sources.dispose(), [source])
 
