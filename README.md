@@ -96,34 +96,6 @@ the product; nothing in the interface is allowed to dim it.
 
 ---
 
-## Walking ahead in the background
-
-A section's files only start downloading when the page reaches it, so a quick
-scroll arrives somewhere that has nothing yet and waits. `prefetch.js` walks a
-section or two ahead while the connection is otherwise idle.
-
-Three rules keep it from doing harm:
-
-```
-stops while the hand is working   a download competing with a scrub is what
-                                  made section six stutter
-fetches into the cache, not into  the transport already holds fifteen <video>
-<video> elements                  elements by section seven; browsers cap
-                                  simultaneous decoders, iOS Safari low
-two sections ahead, never ten     leaving after section two should not have
-                                  paid for section nine
-```
-
-It also stands down entirely on a metered or 2g connection. Verified at
-800 kbit: one file done at arming, still one after six seconds of dragging —
-nothing moves under the hand — and all five done thirty seconds after letting
-go.
-
-To remove it: delete `src/lib/prefetch.js` and the four lines in `App.jsx` that
-mention `prefetch`. Nothing else knows it exists.
-
----
-
 ## An action clip has to be all there before the hand gets it
 
 An approach is only ever played, so its first frames are enough to start it. An
