@@ -1,5 +1,7 @@
 import { forwardRef } from 'react'
 
+import Footer from './Footer.jsx'
+
 import { BRAND, price } from '../lib/brand.js'
 import { SECTIONS } from '../lib/sections.js'
 
@@ -120,38 +122,8 @@ const ScrollTrack = forwardRef(function ScrollTrack({ active, committedIds }, re
         )
       })}
 
-      {/* the last screen: every piece is off, now buy them */}
-      <section
-        className="pointer-events-auto relative flex h-screen flex-col items-center justify-center gap-8 px-6 text-center"
-        style={{ ...SECTION_HEIGHT, ...ON_FILM }}
-      >
-        <p className="font-sans text-[0.55rem] font-light uppercase tracking-widest3 text-gold-400/80">
-          {BRAND.season}
-        </p>
-        <h2 className="max-w-lg text-balance font-serif text-3xl font-light italic leading-tight text-blush sm:text-4xl">
-          Ten pieces. You took all of them off.
-        </h2>
-        <p className="max-w-sm font-sans text-[0.62rem] font-light leading-relaxed tracking-[0.16em] text-blush/60">
-          Each made to order in a numbered edition. Nothing is restocked.
-        </p>
-        <div className="mt-2 flex flex-col items-center gap-5 sm:flex-row sm:gap-7">
-          <a
-            href="#collection"
-            data-interactive
-            className="group relative overflow-hidden border border-blush/30 bg-void/40 px-12 py-4 font-sans text-[0.66rem] font-light uppercase tracking-widest2 text-blush backdrop-blur-sm transition-all duration-700 ease-silk hover:border-blush/70 hover:bg-crimson-700/30"
-          >
-            <span className="relative z-10">Shop the collection</span>
-            <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 animate-shimmer bg-gradient-to-r from-transparent via-blush/20 to-transparent" />
-          </a>
-          <a
-            href="#atelier"
-            data-interactive
-            className="border-b border-gold-400/40 pb-1 font-sans text-[0.66rem] font-light uppercase tracking-widest2 text-gold-300/85 transition-colors duration-700 ease-silk hover:border-gold-200 hover:text-blush"
-          >
-            The atelier
-          </a>
-        </div>
-      </section>
+      <Footer style={SECTION_HEIGHT} />
+
     </div>
   )
 })

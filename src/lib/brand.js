@@ -17,7 +17,41 @@ export const BRAND = {
   house: 'Maison Ondine',
   collection: 'Première',
   season: 'Collection Première · Exclusive',
-  gateLine: 'Ten pieces. None of them will come off on their own.',
+  /** Where a person writes to a house that has no shop yet. */
+  email: 'atelier@maisonondine.com',
+  /*
+   * Where the newsletter form posts.
+   *
+   * Empty on purpose: there is no back end here, and a subscribe box that
+   * swallows an address and says thank you is worse than none at all. While
+   * this is empty the form opens the visitor's mail client instead, which
+   * loses nobody. Paste a Buttondown, Formspree, Mailchimp or Kit endpoint in
+   * and it becomes an ordinary POST — nothing else has to change.
+   */
+  newsletter: '',
+}
+
+/**
+ * The copy says how many pieces there are, so it is counted rather than
+ * written down. It said ten for a while after there were seven.
+ */
+const WORDS = [
+  'no',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+]
+export const spell = (n) => WORDS[n] ?? String(n)
+export const Spell = (n) => {
+  const w = spell(n)
+  return w.charAt(0).toUpperCase() + w.slice(1)
 }
 
 /** Prices are stored as numbers and formatted once, here. */

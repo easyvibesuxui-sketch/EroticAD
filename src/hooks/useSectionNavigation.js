@@ -45,6 +45,25 @@ const LOCK_MS = 260
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v)
 
+/**
+ * Is the gesture inside something that wants to scroll itself, and can that
+ * thing still move the way the gesture is going?
+ *
+ * The wheel is taken globally, which is the whole point of this hook — but it
+ * means anything taller than its screen is unreachable, and the footer is
+ * exactly that on a short phone: at 360x640 its small print sits 44px below the
+ * fold with no way to get to it. An element marked `data-scrolls` keeps its own
+ * scrolling, and only until it runs out; past that the page takes the gesture
+ * back and the next section arrives as usual.
+ */
+const scrollsItself = (target, dy) => {
+  const host = target instanceof Element ? target.closest('[data-scrolls]') : null
+  if (!host) return false
+  const room = host.scrollHeight - host.clientHeight
+  if (room <= 1) return false
+  return dy > 0 ? host.scrollTop < room - 1 : host.scrollTop > 1
+}
+
 export function useSectionNavigation({ count, enabled = true, trackRef }) {
   const [index, setIndex] = useState(0)
   const indexRef = useRef(0)
@@ -76,6 +95,9 @@ export function useSectionNavigation({ count, enabled = true, trackRef }) {
     const locked = () => performance.now() < lockUntilRef.current
 
     const onWheel = (e) => {
+      // Something that scrolls itself gets the gesture first, while it has
+      // somewhere to go.
+      if (scrollsItself(e.target, e.deltaY)) return
       // Taking the wheel is the point: left to itself the browser lands
       // wherever momentum stops, which is the bug this exists to fix.
       e.preventDefault()
@@ -95,16 +117,27 @@ export function useSectionNavigation({ count, enabled = true, trackRef }) {
     const onTouchStart = (e) => {
       // A mark that has claimed the touch owns the whole gesture.
       const onMark = e.target instanceof Element && e.target.closest('[data-claims-touch="true"]')
-      touchRef.current = { y: e.touches[0]?.clientY ?? 0, claimed: Boolean(onMark) }
+      touchRef.current = {
+        y: e.touches[0]?.clientY ?? 0,
+        claimed: Boolean(onMark),
+        target: e.target,
+        inside: false,
+      }
     }
 
     const onTouchMove = (e) => {
       if (touchRef.current.claimed) return
+      // Dragging up moves the content up, which is a positive scroll delta.
+      const dy = touchRef.current.y - (e.touches[0]?.clientY ?? touchRef.current.y)
+      if (scrollsItself(touchRef.current.target, dy)) {
+        touchRef.current.inside = true
+        return
+      }
       e.preventDefault()
     }
 
     const onTouchEnd = (e) => {
-      if (touchRef.current.claimed || locked()) return
+      if (touchRef.current.claimed || touchRef.current.inside || locked()) return
       const endY = e.changedTouches[0]?.clientY ?? touchRef.current.y
       const delta = touchRef.current.y - endY
       if (Math.abs(delta) < SWIPE_THRESHOLD) return

@@ -76,12 +76,12 @@ measured — so the handover is invisible. A section counts as done when its
 
 | | |
 | --- | --- |
-| Sections | 10 |
+| Sections | 7 |
 | Autoplay per section | however long its approach clip runs |
 | Mechanical per section | however long its action clip runs |
-| Film length | ~100s, as ten approaches and their actions |
+| Film length | ~70s, as seven approaches and their actions |
 
-Ten ticks down the right edge show where you are; a tick turns **gold** when its
+A tick per section down the right edge shows where you are; a tick turns **gold** when its
 action has actually been performed — not when its section has been passed. That
 difference is the site: a piece you have not undressed is a piece you have not
 been offered.
@@ -112,6 +112,27 @@ all 5.38s and freezes for 4 out of 124.
 A section that never arms would be worse than one that scrubs roughly — no mark,
 nothing to do, no way to finish it — so `ARM_PATIENCE` hands the film over
 anyway after eight seconds of waiting.
+
+---
+
+## The last screen is the footer
+
+The page is driven a section at a time — the wheel is taken and every move is
+exactly one viewport — so anything past the last stop cannot be reached, and
+anything taller than a viewport cannot be scrolled within. The closing line, the
+way to buy, the newsletter and the small print therefore share one screen rather
+than sitting below it, and that screen is the last stop.
+
+For the sizes where it still will not fit — measured, 44px of small print below
+the fold at 360x640 — an element marked `data-scrolls` keeps its own scrolling
+until it runs out, and only then does the page take the gesture back. At 360x640
+the footer scrolls its own 72px and the section stop does not move.
+
+`BRAND.newsletter` is empty on purpose. There is no back end here, and a
+subscribe box that swallows an address and says thank you is worse than none;
+while it is empty the form opens the visitor's mail client instead, which loses
+nobody. Paste a Buttondown, Formspree, Mailchimp or Kit endpoint in and it
+becomes an ordinary POST, with nothing else to change.
 
 ---
 

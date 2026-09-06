@@ -383,53 +383,6 @@ export const SECTIONS = withInjected([
     teeth: 4,
     steam: 0.2,
   }),
-  section(7, {
-    id: 'sheet',
-    product: {
-      name: 'Le Drap',
-      price: 610,
-      note: 'Stonewashed linen, ladder-stitched',
-      edition: 'One of thirty',
-    },
-    actionLabel: 'Draw the sheet back',
-    title: 'Eight',
-    caption: 'Washed linen, heavy as water.',
-    u: 0.55,
-    v: 0.62,
-    dir: 'left',
-    steam: 0.3,
-  }),
-  section(8, {
-    id: 'lamp',
-    product: {
-      name: 'La Veilleuse',
-      price: 340,
-      note: 'Hand-blown glass on an aged brass base',
-      edition: 'One of twenty',
-    },
-    actionLabel: 'Turn the lamp down',
-    title: 'Nine',
-    caption: 'The room goes the colour of skin.',
-    u: 0.28,
-    v: 0.36,
-    dir: 'down',
-  }),
-  section(9, {
-    id: 'door',
-    product: {
-      name: 'La Clé',
-      price: 120,
-      note: 'Solid brass, engraved to order',
-      edition: 'One of ten',
-    },
-    actionLabel: 'Close the door',
-    title: 'Ten',
-    caption: 'Everything after this is yours.',
-    u: 0.5,
-    v: 0.5,
-    dir: 'right',
-    steam: 0.4,
-  }),
 ])
 
 export const FILM_SECONDS = SECTIONS.length * SECTION_SECONDS

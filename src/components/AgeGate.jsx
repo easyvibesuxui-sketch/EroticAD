@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 
 import Wordmark from './Wordmark.jsx'
-import { BRAND } from '../lib/brand.js'
+import { BRAND, Spell } from '../lib/brand.js'
+import { SECTIONS } from '../lib/sections.js'
 
 /**
  * The gate holds the whole experience back — no video element is created, no
@@ -53,7 +54,8 @@ export default function AgeGate({ onEnter, booting }) {
         </h1>
 
         <p className="mx-auto mt-8 max-w-sm font-sans text-[0.72rem] font-light leading-relaxed tracking-[0.18em] text-smoke/55">
-          {BRAND.season}. {BRAND.gateLine}
+          {BRAND.season}. {Spell(SECTIONS.length)} pieces. None of them will come off
+          on their own.
           <br />
           Explicit material. Sound on, headphones warmer.
         </p>
