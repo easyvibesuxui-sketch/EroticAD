@@ -64,6 +64,14 @@ export default function App() {
     trackRef,
   })
 
+  /*
+   * The last stop is the footer, which is not a section. `active` clamps to the
+   * last real one so the film has something to hold on, but everything that
+   * belongs *to* a section — its mark, its instruction, the surface that takes
+   * the hand — has to know the difference, or section seven's zigzag is drawn
+   * across the footer and its grab surface swallows the newsletter field.
+   */
+  const onSection = index < SECTIONS.length
   const active = Math.min(index, SECTIONS.length - 1)
   const section = SECTIONS[active]
   const stepIndex = Math.min(step, section.steps.length - 1)
@@ -299,22 +307,24 @@ export default function App() {
             </span>
           </header>
 
-          <SectionIndicator
-            key={`${section.id}:${stepIndex}`}
-            step={action}
-            travel={travel}
-            radius={radius}
-            path={path}
-            centreRef={centreRef}
-            aspectRef={aspectRef}
-            armed={transport === 'armed'}
-            progressRef={progressRef}
-            dragging={drag.dragging}
-            committed={drag.committed}
-            handlers={drag.handlers}
-          />
+          {onSection && (
+            <SectionIndicator
+              key={`${section.id}:${stepIndex}`}
+              step={action}
+              travel={travel}
+              radius={radius}
+              path={path}
+              centreRef={centreRef}
+              aspectRef={aspectRef}
+              armed={transport === 'armed'}
+              progressRef={progressRef}
+              dragging={drag.dragging}
+              committed={drag.committed}
+              handlers={drag.handlers}
+            />
+          )}
 
-          <ScrollCue visible={committedIds.has(section.id)} />
+          <ScrollCue visible={onSection && committedIds.has(section.id)} />
           <SectionRail active={active} committedIds={committedIds} />
           <ScrollTrack ref={trackRef} active={active} committedIds={committedIds} />
         </>
