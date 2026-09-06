@@ -105,6 +105,28 @@ const withInjected = (list) =>
       ...step,
       src: asset(injectedSections[`${s.id}:step:${step.n}`] ?? step.src),
     })),
+    /*
+     * The clothed twin of the same section, shot the same way.
+     *
+     *   safe: {
+     *     approach: '/media/sections/01a-approach-covered.mp4',
+     *     actions: ['/media/sections/01b-action-covered.mp4'],
+     *   }
+     *
+     * Absent, as it is on all of them for now, the covered version of the site
+     * falls through to the procedural stand-in for that section — which paints
+     * a shape in candlelight and shows nobody. That is the honest empty state:
+     * the alternative is quietly serving the explicit clip to someone who asked
+     * not to see it.
+     */
+    safe: s.safe
+      ? {
+          approach: asset(injectedSections[`${s.id}:safe:approach`] ?? s.safe.approach),
+          actions: (s.safe.actions ?? []).map((src, n) =>
+            asset(injectedSections[`${s.id}:safe:step:${n}`] ?? src),
+          ),
+        }
+      : null,
   }))
 
 /*

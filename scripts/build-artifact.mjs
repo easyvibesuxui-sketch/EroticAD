@@ -133,6 +133,10 @@ function trimMp3(buf, seconds) {
  * where it takes what is left.
  */
 const MEDIA_SLOTS = [
+  // The gate's two circles, ahead of everything: they are 30 kB each and they
+  // are the only thing anyone sees until a choice is made.
+  ['gate:covered', 'public/media/gate/covered.jpg', 'image/jpeg'],
+  ['gate:bare', 'public/media/gate/bare.jpg', 'image/jpeg'],
   ...SECTIONS.flatMap((s) => [
     ...(s.approach ? [[`section:${s.id}:approach`, `public${s.approach}`, 'video/mp4']] : []),
     // A section is a sequence of actions; most sequences are one long.

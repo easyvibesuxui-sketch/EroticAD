@@ -71,7 +71,7 @@ function createElement(src) {
   return el
 }
 
-export function createFilmSources({ sections, sharedVideo = null, standIn = null }) {
+export function createFilmSources({ sections, sharedVideo = null, standIn = null, mode = 'bare' }) {
   const clips = new Map() // `${index}:${role}` -> { el, texture }
   const resolved = new Map()
 
@@ -85,8 +85,16 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
   const sourceFor = (index, role) => {
     const section = sections[index]
     if (!section) return null
-    if (role === 'approach') return section.approach
+    /*
+     * The covered version of the site plays each section's clothed twin, and
+     * nothing at all where one has not been delivered — a section with no twin
+     * returns null here, `ensure` makes no element, and `get` falls through to
+     * the stand-in. Someone who chose not to see it never does.
+     */
+    const covered = mode === 'covered'
+    if (role === 'approach') return covered ? (section.safe?.approach ?? null) : section.approach
     const n = Number(role.slice('step:'.length))
+    if (covered) return section.safe?.actions?.[n] ?? null
     return section.steps?.[n]?.src ?? null
   }
 
@@ -144,7 +152,14 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
    */
   const ready = (index, role) => {
     const clip = ensure(index, role)
-    if (!clip) return false
+    /*
+     * No clip for this role at all — either the section was never given one, or
+     * this is the covered version of the site and it has no clothed twin yet.
+     * Either way the shared cut or the stand-in serves instead, and those are
+     * ready the moment they exist. Answering `false` here would leave the
+     * section unable to arm: no mark, nothing to do, no way to finish it.
+     */
+    if (!clip) return true
     // An approach only has to have started; an action has to be all there.
     return role === 'approach' ? clip.arrived : clip.arrived && whole(clip.el)
   }

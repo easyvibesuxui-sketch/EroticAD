@@ -217,7 +217,13 @@ export default function App() {
     else linearReset()
   }, [alongReset, angularReset, linearReset, ring, route, stepIndex])
 
-  const handleEnter = useCallback(async () => {
+  /**
+   * Which version of the collection the gate was answered with: 'bare' or
+   * 'covered'. It is fixed for the visit — the film sources are built around
+   * it once — because changing it later would mean tearing down every clip
+   * mid-scroll, and nobody asked to change their mind at speed.
+   */
+  const handleEnter = useCallback(async (mode = 'bare') => {
     if (phase !== 'gate') return
 
     // The context must be opened inside the click itself, before any await.
@@ -227,8 +233,14 @@ export default function App() {
 
     setPhase('booting')
 
+    /*
+     * The shared cut is the explicit film too, so a covered visit does not even
+     * fetch it — it was being downloaded and then thrown away, which is both
+     * waste and the wrong instinct.
+     */
+    const covered = mode === 'covered'
     const [video, music, afterTrack] = await Promise.all([
-      loadVideo(MEDIA.video),
+      covered ? Promise.resolve(null) : loadVideo(MEDIA.video),
       loadAudio(MEDIA.music),
       loadAudio(MEDIA.after),
     ])
@@ -236,9 +248,15 @@ export default function App() {
     // Sections carry their own clips; anything not yet delivered falls back to
     // a shared cut, and failing that to the procedural stand-in, so the whole
     // architecture runs with one file or with none.
+    // The stand-in takes every section that has no film of its own.
     const standIn = video ? null : createStandIn()
     const playhead = new Playhead(null)
-    const sources = createFilmSources({ sections: SECTIONS, sharedVideo: video, standIn })
+    const sources = createFilmSources({
+      sections: SECTIONS,
+      sharedVideo: video,
+      standIn,
+      mode,
+    })
     sources.prepare(0)
 
     setSource({ playhead, sources, standIn })

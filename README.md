@@ -23,6 +23,32 @@ npm run build:artifact   # one self-contained HTML file
 
 ---
 
+## The gate asks which, not whether
+
+Two circles that overlap, a question in the lens where they do, and the answer
+is a version of the site rather than a yes. Only one side carries the 18+,
+because only one side needs it.
+
+The choice is real all the way down. `createFilmSources` takes a `mode`, and in
+`covered` a section plays its clothed twin:
+
+```
+safe: {
+  approach: '/media/sections/01a-approach-covered.mp4',
+  actions: ['/media/sections/01b-action-covered.mp4'],
+}
+```
+
+No section has one yet, so covered mode falls through to the procedural
+stand-in for every section — which paints a shape in candlelight and shows
+nobody. That is the honest empty state, and it is verified rather than assumed:
+choosing *Nothing comes off* creates zero video elements and makes zero media
+requests, the shared cut included, because that is the explicit film too. The
+mechanic still works on the stand-in, so the covered site is a whole site and
+not a stub.
+
+---
+
 ## The rule
 
 ```
