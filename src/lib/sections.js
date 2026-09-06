@@ -407,6 +407,32 @@ export const SECTIONS = withInjected([
      * lies at u 0.43, v 0.54 in the first frame and v 0.83 in the last.
      */
     action: '/media/sections/06b-action.mp4',
+    /*
+     * The covered twin runs the gesture the other way: she is in the lace dress
+     * and it is drawn *up*, so this is the only mark on the site that travels
+     * against gravity.
+     *
+     * It follows the garment for the same reason the bare cut does, and here
+     * there is no alternative at all — the two hands sit at u 0.69 and u 0.18,
+     * and a portrait phone crops the film to u [0.37, 0.63], so a mark on
+     * either hand would be shoved to the edge by the clamp and stop meaning
+     * anything. The hem between them is on screen at every window shape:
+     * measured, its middle lies at u 0.44, v 0.72 in the first frame and rises
+     * to v 0.50 in the last.
+     */
+    safe: {
+      approach: '/media/sections/06a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/06b-action-covered.mp4',
+          u: 0.44,
+          v: 0.72,
+          dir: 'up',
+          travel: 0.55,
+          label: 'Draw it up',
+        },
+      ],
+    },
     actionLabel: 'Ease them down',
     u: 0.43,
     v: 0.52,

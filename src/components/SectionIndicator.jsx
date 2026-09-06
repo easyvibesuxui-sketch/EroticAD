@@ -234,9 +234,23 @@ export default function SectionIndicator({
             opacity: 0,
           }}
         >
+          {/*
+           * The instruction sits at the far end of the gesture, which for every
+           * direction but one means below the mark.
+           *
+           * An upward pull is the exception, and it has to be: the mark stands
+           * where the hand starts, which for section six's covered cut is the
+           * hem of a dress at v 0.72 — low in the frame, and on a phone that is
+           * squarely inside the product card. Hung below, the instruction landed
+           * between the edition line and the bag button. Hung above, it sits in
+           * the empty part of the frame the pull is heading into, which is where
+           * the eye is going anyway.
+           */}
           <span
             ref={copyRef}
-            className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap pt-4 font-sans text-[0.58rem] font-light uppercase tracking-widest2 text-gold-300/90"
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-sans text-[0.58rem] font-light uppercase tracking-widest2 text-gold-300/90 ${
+              dy < 0 ? 'bottom-full pb-4' : 'top-full pt-4'
+            }`}
             style={{ textShadow: '0 1px 2px rgba(4,2,3,0.9), 0 2px 12px rgba(4,2,3,0.8)' }}
           >
             {step.label}
