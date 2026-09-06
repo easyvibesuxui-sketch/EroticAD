@@ -132,22 +132,48 @@ function trimMp3(buf, seconds) {
  * here that degrades instead of disappearing. It therefore goes at the end,
  * where it takes what is left.
  */
+const clip = (slot, path) => [slot, `public${path}`, 'video/mp4']
+
+/*
+ * Slots are spent as **groups**, all or nothing.
+ *
+ * A section is only worth its bytes as a whole: an approach with no action clip
+ * plays itself, stops, and then hands the drag a section with no film in it,
+ * which is worse than the section not being here at all — and it has spent
+ * three megabytes to be worse. So each version of each section goes in or stays
+ * out as one piece, and the budget moves on to the next group rather than
+ * filling the tail of the file with halves.
+ */
 const MEDIA_SLOTS = [
   // The gate's two circles, ahead of everything: they are 30 kB each and they
   // are the only thing anyone sees until a choice is made.
-  ['gate:covered', 'public/media/gate/covered.jpg', 'image/jpeg'],
-  ['gate:bare', 'public/media/gate/bare.jpg', 'image/jpeg'],
+  [['gate:covered', 'public/media/gate/covered.jpg', 'image/jpeg']],
+  [['gate:bare', 'public/media/gate/bare.jpg', 'image/jpeg']],
   ...SECTIONS.flatMap((s) => [
-    ...(s.approach ? [[`section:${s.id}:approach`, `public${s.approach}`, 'video/mp4']] : []),
-    // A section is a sequence of actions; most sequences are one long.
-    ...s.steps
-      .filter((step) => step.src)
-      .map((step) => [`section:${s.id}:step:${step.n}`, `public${step.src}`, 'video/mp4']),
+    // The bare cut of the section: the approach and every action it needs.
+    [
+      ...(s.approach ? [clip(`section:${s.id}:approach`, s.approach)] : []),
+      // A section is a sequence of actions; most sequences are one long.
+      ...s.steps.filter((step) => step.src).map((step) => clip(`section:${s.id}:step:${step.n}`, step.src)),
+    ],
+    /*
+     * The covered twin sits directly behind its own section, not in a block of
+     * its own at either end. Both answers at the gate are real answers, so the
+     * budget should run out at the same depth in the collection whichever one
+     * you give — rather than one version reaching section four while the other
+     * has nothing at all.
+     */
+    [
+      ...(s.safe?.approach ? [clip(`section:${s.id}:safe:approach`, s.safe.approach)] : []),
+      ...(s.safe?.steps ?? [])
+        .filter((step) => step.src)
+        .map((step, n) => clip(`section:${s.id}:safe:step:${n}`, step.src)),
+    ],
   ]),
-  ['video', 'public/media/scene.mp4', 'video/mp4'],
-  ['music', 'public/media/track.mp3', 'audio/mpeg'],
-  ['after', 'public/media/after.mp3', 'audio/mpeg'],
-]
+  [['video', 'public/media/scene.mp4', 'video/mp4']],
+  [['music', 'public/media/track.mp3', 'audio/mpeg']],
+  [['after', 'public/media/after.mp3', 'audio/mpeg']],
+].filter((group) => group.length)
 
 const injected = {}
 const sectionSrc = {}
@@ -155,33 +181,51 @@ const skipped = []
 let budget = CEILING_MB * 1024 * 1024 - script.length - styles.length
 let embeddedBytes = 0
 
-for (const [slot, path, mime] of MEDIA_SLOTS) {
-  if (!existsSync(path)) continue
-  let raw = readFileSync(path)
-  let note = ''
-  if (Math.ceil(raw.length / 3) * 4 > budget && slot === 'music') {
+for (const group of MEDIA_SLOTS) {
+  const present = group.filter(([, path]) => existsSync(path))
+  if (!present.length) continue
+
+  // Read the whole group first: it is priced, and taken, as one thing.
+  const parts = present.map(([slot, path, mime]) => ({
+    slot,
+    path,
+    mime,
+    raw: readFileSync(path),
+    note: '',
+  }))
+
+  const cost = () => parts.reduce((sum, part) => sum + Math.ceil(part.raw.length / 3) * 4, 0)
+
+  const music = parts.find((part) => part.slot === 'music')
+  if (music && cost() > budget) {
     // Rather than drop the sound entirely, shorten the loop until it fits.
     for (const seconds of [120, 90, 60, 45, 30, 20]) {
-      const trimmed = trimMp3(raw, seconds)
-      if (Math.ceil(trimmed.length / 3) * 4 <= budget) {
-        raw = trimmed
-        note = ` (trimmed to ~${seconds}s to fit)`
+      const trimmed = trimMp3(music.raw, seconds)
+      const was = music.raw
+      music.raw = trimmed
+      if (cost() <= budget) {
+        music.note = ` (trimmed to ~${seconds}s to fit)`
         break
       }
+      music.raw = was
     }
   }
-  const encoded = Math.ceil(raw.length / 3) * 4
-  if (encoded > budget) {
-    skipped.push(`${slot} (${(statSync(path).size / 1024 / 1024).toFixed(1)} MB)`)
+
+  if (cost() > budget) {
+    for (const { slot, path } of parts) {
+      skipped.push(`${slot} (${(statSync(path).size / 1024 / 1024).toFixed(1)} MB)`)
+    }
     continue
   }
-  budget -= encoded
-  const bytes = raw.length
-  embeddedBytes += bytes
-  const uri = `data:${mime};base64,${raw.toString('base64')}`
-  if (slot.startsWith('section:')) sectionSrc[slot.slice('section:'.length)] = uri
-  else injected[slot] = [uri]
-  console.log(`  embedding ${slot}: ${(bytes / 1024 / 1024).toFixed(1)} MB${note}`)
+
+  budget -= cost()
+  for (const { slot, mime, raw, note } of parts) {
+    embeddedBytes += raw.length
+    const uri = `data:${mime};base64,${raw.toString('base64')}`
+    if (slot.startsWith('section:')) sectionSrc[slot.slice('section:'.length)] = uri
+    else injected[slot] = [uri]
+    console.log(`  embedding ${slot}: ${(raw.length / 1024 / 1024).toFixed(1)} MB${note}`)
+  }
 }
 if (Object.keys(sectionSrc).length) injected.sections = sectionSrc
 if (skipped.length) console.log(`  left out (no room): ${skipped.join(', ')}`)

@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import vertexShader from '../shaders/steam.vert.glsl?raw'
 import fragmentShader from '../shaders/steam.frag.glsl?raw'
 import { breath, clamp01, heartbeat, bpmFor } from '../lib/pulse.js'
-import { SECTIONS } from '../lib/sections.js'
 
 /** How long a mark's gold bloom lives after the action commits. */
 const SPARK_SECONDS = 0.9
@@ -31,6 +30,7 @@ const ARM_PATIENCE = 8
  * The action clip is never played, in either phase. It is addressed.
  */
 export default function FilmPlane({
+  sections,
   playhead,
   sources,
   standIn,
@@ -89,7 +89,7 @@ export default function FilmPlane({
 
     // The last stop on the page is the shop, which has no footage of its own —
     // it holds on the tenth section rather than falling back to the first.
-    const section = SECTIONS[Math.min(activeRef.current, SECTIONS.length - 1)]
+    const section = sections[Math.min(activeRef.current, sections.length - 1)]
     const progress = progressRef.current
 
     // --- the transport ----------------------------------------------------

@@ -12,7 +12,7 @@ import { AudioEngine } from './lib/AudioEngine.js'
 import { MEDIA } from './lib/media.js'
 import { Playhead } from './lib/Playhead.js'
 import { createFilmSources } from './lib/filmSources.js'
-import { SECTIONS } from './lib/sections.js'
+import { resolveSections } from './lib/sections.js'
 import { loadAudio, loadVideo } from './lib/loadMedia.js'
 import { createStandIn } from './lib/standin.js'
 import { useAngularDrag } from './hooks/useAngularDrag.js'
@@ -26,6 +26,12 @@ import { useSectionNavigation } from './hooks/useSectionNavigation.js'
 
 export default function App() {
   const [phase, setPhase] = useState('gate') // gate -> booting -> live
+  /*
+   * Which version of the collection the gate was answered with. It is decided
+   * once and never changes for the visit, so every list of sections below is
+   * already the right one — nothing downstream carries the choice around.
+   */
+  const [mode, setMode] = useState('bare')
   const [source, setSource] = useState(null) // { playhead, sources, standIn }
   const [transport, setTransport] = useState('idle') // idle | playing | armed
   const [committedIds, setCommittedIds] = useState(() => new Set())
@@ -54,12 +60,14 @@ export default function App() {
   /** Where the next step opens: 0 coming forward, 1 coming back. */
   const enterAtRef = useRef(0)
 
+  const sections = useMemo(() => resolveSections(mode), [mode])
+
   const reducedMotion = useReducedMotion()
   const trackRef = useRef(null)
 
   // One more stop than there are sections: the last screen is the shop.
   const { index, indexRef } = useSectionNavigation({
-    count: SECTIONS.length + 1,
+    count: sections.length + 1,
     enabled: phase === 'live',
     trackRef,
   })
@@ -71,9 +79,9 @@ export default function App() {
    * the hand — has to know the difference, or section seven's zigzag is drawn
    * across the footer and its grab surface swallows the newsletter field.
    */
-  const onSection = index < SECTIONS.length
-  const active = Math.min(index, SECTIONS.length - 1)
-  const section = SECTIONS[active]
+  const onSection = index < sections.length
+  const active = Math.min(index, sections.length - 1)
+  const section = sections[active]
   const stepIndex = Math.min(step, section.steps.length - 1)
   const action = section.steps[stepIndex]
   const isLastStep = stepIndex === section.steps.length - 1
@@ -223,8 +231,9 @@ export default function App() {
    * it once — because changing it later would mean tearing down every clip
    * mid-scroll, and nobody asked to change their mind at speed.
    */
-  const handleEnter = useCallback(async (mode = 'bare') => {
+  const handleEnter = useCallback(async (choice = 'bare') => {
     if (phase !== 'gate') return
+    setMode(choice)
 
     // The context must be opened inside the click itself, before any await.
     const engine = new AudioEngine()
@@ -238,7 +247,7 @@ export default function App() {
      * fetch it — it was being downloaded and then thrown away, which is both
      * waste and the wrong instinct.
      */
-    const covered = mode === 'covered'
+    const covered = choice === 'covered'
     const [video, music, afterTrack] = await Promise.all([
       covered ? Promise.resolve(null) : loadVideo(MEDIA.video),
       loadAudio(MEDIA.music),
@@ -252,10 +261,9 @@ export default function App() {
     const standIn = video ? null : createStandIn()
     const playhead = new Playhead(null)
     const sources = createFilmSources({
-      sections: SECTIONS,
+      sections: resolveSections(choice),
       sharedVideo: video,
       standIn,
-      mode,
     })
     sources.prepare(0)
 
@@ -282,6 +290,7 @@ export default function App() {
     if (!source) return null
     return (
       <FilmStage
+        sections={sections}
         playhead={source.playhead}
         sources={source.sources}
         standIn={source.standIn}
@@ -296,7 +305,7 @@ export default function App() {
         reducedMotion={reducedMotion}
       />
     )
-  }, [source, indexRef, reducedMotion])
+  }, [sections, source, indexRef, reducedMotion])
 
   const live = phase === 'live'
 

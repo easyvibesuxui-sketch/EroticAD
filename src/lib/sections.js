@@ -106,25 +106,31 @@ const withInjected = (list) =>
       src: asset(injectedSections[`${s.id}:step:${step.n}`] ?? step.src),
     })),
     /*
-     * The clothed twin of the same section, shot the same way.
+     * The clothed twin of the same section.
      *
      *   safe: {
-     *     approach: '/media/sections/01a-approach-covered.mp4',
-     *     actions: ['/media/sections/01b-action-covered.mp4'],
+     *     approach: '…-covered.mp4',
+     *     steps: [{ src: '…-covered.mp4', u: 0.6, v: 0.49, travel: 0.88 }],
      *   }
      *
-     * Absent, as it is on all of them for now, the covered version of the site
-     * falls through to the procedural stand-in for that section — which paints
-     * a shape in candlelight and shows nobody. That is the honest empty state:
-     * the alternative is quietly serving the explicit clip to someone who asked
-     * not to see it.
+     * It is not only a different file, it is a different shot — section one's
+     * twin is framed closer and runs a second longer, so its hands start
+     * somewhere else and want a longer pull. A step here therefore carries
+     * geometry as well as media, and whatever it does not say it inherits from
+     * the section.
+     *
+     * Absent, the covered version of the site falls through to the procedural
+     * stand-in for that section, which paints a shape in candlelight and shows
+     * nobody. That is the honest empty state: the alternative is quietly
+     * serving the explicit clip to someone who asked not to see it.
      */
     safe: s.safe
       ? {
           approach: asset(injectedSections[`${s.id}:safe:approach`] ?? s.safe.approach),
-          actions: (s.safe.actions ?? []).map((src, n) =>
-            asset(injectedSections[`${s.id}:safe:step:${n}`] ?? src),
-          ),
+          steps: (s.safe.steps ?? []).map((step, n) => ({
+            ...step,
+            src: asset(injectedSections[`${s.id}:safe:step:${n}`] ?? step.src),
+          })),
         }
       : null,
   }))
@@ -150,6 +156,18 @@ export const SECTIONS = withInjected([
     // ends, and everything in the action clip belongs to the hand.
     approach: '/media/sections/01a-approach.mp4',
     action: '/media/sections/01b-action.mp4',
+    /*
+     * The same robe drawn open over lace instead of over nothing. Measured off
+     * the covered action clip, which is framed closer than the bare one: the
+     * far hand starts at u 0.60, v 0.49 rather than u 0.68, v 0.36, and carries
+     * out to u 0.85. It also runs 3.67s against 2.42s, so the pull is longer in
+     * the same proportion — the rule has always been that drawing it through by
+     * hand should take about as long as the film it moves.
+     */
+    safe: {
+      approach: '/media/sections/01a-approach-covered.mp4',
+      steps: [{ src: '/media/sections/01b-action-covered.mp4', u: 0.6, v: 0.49, travel: 0.88 }],
+    },
     actionLabel: 'Draw the robe open',
     title: 'One',
     caption: 'It was never really closed.',
@@ -408,3 +426,23 @@ export const SECTIONS = withInjected([
 ])
 
 export const FILM_SECONDS = SECTIONS.length * SECTION_SECONDS
+
+/**
+ * The sections as one version of the site sees them.
+ *
+ * Resolved once, at the gate, so that nothing downstream has to carry a mode
+ * around: the transport, the marks and the film sources all just read a list of
+ * sections and never learn there was a choice.
+ */
+export function resolveSections(mode = 'bare') {
+  if (mode !== 'covered') return SECTIONS
+  return SECTIONS.map((s) => ({
+    ...s,
+    approach: s.safe?.approach ?? null,
+    steps: s.steps.map((step, n) => {
+      const twin = s.safe?.steps?.[n]
+      // No twin for this action: no source at all, and the stand-in serves.
+      return twin ? { ...step, ...twin } : { ...step, src: null }
+    }),
+  }))
+}

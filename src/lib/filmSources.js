@@ -71,7 +71,7 @@ function createElement(src) {
   return el
 }
 
-export function createFilmSources({ sections, sharedVideo = null, standIn = null, mode = 'bare' }) {
+export function createFilmSources({ sections, sharedVideo = null, standIn = null }) {
   const clips = new Map() // `${index}:${role}` -> { el, texture }
   const resolved = new Map()
 
@@ -85,16 +85,11 @@ export function createFilmSources({ sections, sharedVideo = null, standIn = null
   const sourceFor = (index, role) => {
     const section = sections[index]
     if (!section) return null
-    /*
-     * The covered version of the site plays each section's clothed twin, and
-     * nothing at all where one has not been delivered — a section with no twin
-     * returns null here, `ensure` makes no element, and `get` falls through to
-     * the stand-in. Someone who chose not to see it never does.
-     */
-    const covered = mode === 'covered'
-    if (role === 'approach') return covered ? (section.safe?.approach ?? null) : section.approach
+    // The list has already been resolved for the version of the site being
+    // shown — see `resolveSections`. A null here means there is no film for
+    // this role and the stand-in will serve it.
+    if (role === 'approach') return section.approach
     const n = Number(role.slice('step:'.length))
-    if (covered) return section.safe?.actions?.[n] ?? null
     return section.steps?.[n]?.src ?? null
   }
 
