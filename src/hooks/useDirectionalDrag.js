@@ -4,6 +4,17 @@ import { COMMIT_THRESHOLD } from '../lib/sections.js'
 import { DIRECTIONS } from '../lib/layout.js'
 
 /**
+ * How far back past the start the hand may carry before the previous clip
+ * takes the film again.
+ *
+ * The same margin the ring uses, and for the same reason: the film shows 0
+ * throughout, so this is purely a reading of intent, and it has to be far
+ * enough that letting go at the very start does not fall through to the clip
+ * before by accident.
+ */
+const EXIT_BACK = -0.06
+
+/**
  * Turn the last two seconds by hand.
  *
  * Pointer travel along the section's direction maps straight onto a 0..1
@@ -25,6 +36,7 @@ export function useDirectionalDrag({
   onCommit,
   onUndo,
   onFull,
+  onExitBack,
 }) {
   const [dragging, setDragging] = useState(false)
   const [committed, setCommitted] = useState(false)
@@ -44,14 +56,25 @@ export function useDirectionalDrag({
   dirRef.current = DIRECTIONS[dir] ?? DIRECTIONS.right
   lengthRef.current = length
 
-  const reset = useCallback(() => {
-    progressRef.current = 0
-    targetRef.current = 0
-    draggingRef.current = false
-    committedRef.current = false
-    setDragging(false)
-    setCommitted(false)
-  }, [progressRef])
+  /**
+   * Put the control somewhere, usually the start.
+   *
+   * `to` is not always 0: a section of more than one clip that is wound back
+   * past a cut hands the film to the clip before, *fully wound*, so the hand
+   * carries on backwards through it instead of hitting a wall at a join it
+   * never saw going forward.
+   */
+  const reset = useCallback(
+    (to = 0) => {
+      progressRef.current = to
+      targetRef.current = to
+      draggingRef.current = false
+      committedRef.current = to >= COMMIT_THRESHOLD
+      setDragging(false)
+      setCommitted(to >= COMMIT_THRESHOLD)
+    },
+    [progressRef],
+  )
 
   /**
    * Crossing the threshold either way is what marks the piece undone. Both
@@ -91,15 +114,23 @@ export function useDirectionalDrag({
       if (!draggingRef.current) return
       const [dx, dy] = dirRef.current
       const along = (e.clientX - anchorRef.current.x) * dx + (e.clientY - anchorRef.current.y) * dy
-      const next = Math.max(0, Math.min(1, along / lengthRef.current))
+      /*
+       * The raw reading runs past both ends; what is shown does not. Beyond the
+       * start there is no film left to read — the clip is at 0 — but the hand
+       * is plainly still going, and on a section of more than one clip that is
+       * a request for the previous one.
+       */
+      const raw = Math.max(EXIT_BACK, Math.min(1, along / lengthRef.current))
+      const next = Math.max(0, raw)
       progressRef.current = next
       targetRef.current = next
       mark(next)
       // Wound all the way to the terminus. On a section built from more than
       // one clip this is where the next one takes the film.
-      if (next >= 0.995) onFull?.()
+      if (raw >= 0.995) onFull?.()
+      else if (raw <= EXIT_BACK) onExitBack?.()
     },
-    [mark, onFull, progressRef],
+    [mark, onExitBack, onFull, progressRef],
   )
 
   const onPointerUp = useCallback(

@@ -40,6 +40,11 @@ export default function SectionIndicator({
   const ring = step.track === 'ring'
   const route = step.track === 'zigzag'
   const [dx, dy] = DIRECTIONS[step.dir] ?? DIRECTIONS.right
+
+  /** Half the instruction's rendered width, measured once it has one. */
+  const copyHalfRef = useRef(0)
+  /** The mark position the instruction's nudge was last worked out for. */
+  const nudgedAtRef = useRef(null)
   const along = travel + 130
   const across = 150
   const horizontal = Math.abs(dx) > 0
@@ -140,11 +145,47 @@ export default function SectionIndicator({
         // The instruction retires as the action is performed — by then the
         // film is saying it better.
         copyRef.current.style.opacity = String(presence * Math.max(0, 1 - progress * 1.6))
+
+        /*
+         * ...and it is nudged back on screen if it would hang off the side.
+         *
+         * The instruction is centred under the mark, and the mark is already
+         * allowed to sit hard against the window edge — section seven's covered
+         * route stands on a tongue at u 0.67, which a portrait phone crops away
+         * entirely, so the clamp above puts it at the right-hand edge. Centred
+         * there, "follow her tongue" lost its last four letters to the window.
+         *
+         * The mark stays where the clamp put it. Only the words move, and only
+         * as far as they have to.
+         */
+        /*
+         * Worked out only when the mark has actually moved. Where it stands
+         * follows the window and the film's shape, not the frame counter, so on
+         * a still window this measures once and then costs nothing — which
+         * matters, because reading a box back out of the DOM forces layout.
+         */
+        if (p.x !== nudgedAtRef.current) {
+          nudgedAtRef.current = p.x
+          const box = hitRef.current
+          const centreX = box ? box.getBoundingClientRect().left + box.offsetWidth / 2 : p.x
+          if (!copyHalfRef.current) copyHalfRef.current = copyRef.current.offsetWidth / 2
+          const half = copyHalfRef.current
+          const pad = 12
+          const nudge =
+            centreX - half < pad
+              ? pad - (centreX - half)
+              : centreX + half > vw - pad
+                ? vw - pad - (centreX + half)
+                : 0
+          copyRef.current.style.marginLeft = `${Math.round(nudge)}px`
+        }
       }
 
       raf = requestAnimationFrame(tick)
     }
 
+    copyHalfRef.current = 0
+    nudgedAtRef.current = null
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [aspectRef, armed, centreRef, dragging, dx, dy, progressRef, radius, ring, step, travel])

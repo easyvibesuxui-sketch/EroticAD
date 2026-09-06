@@ -166,6 +166,7 @@ export default function App() {
     onCommit: handleCommit,
     onUndo: handleUndo,
     onFull: handleFull,
+    onExitBack: handleExitBack,
   })
 
   const angular = useAngularDrag({
@@ -204,9 +205,9 @@ export default function App() {
     enterAtRef.current = 0
     setStep(0)
     stepRef.current = 0
-    linearReset()
+    linearReset(0)
     angularReset(0)
-    alongReset()
+    alongReset(0)
     audioRef.current?.stopAfter()
     setTransport('playing')
   }, [active, alongReset, angularReset, linearReset])
@@ -221,8 +222,8 @@ export default function App() {
     const at = enterAtRef.current
     progressRef.current = at
     if (ring) angularReset(at)
-    else if (route) alongReset()
-    else linearReset()
+    else if (route) alongReset(at)
+    else linearReset(at)
   }, [alongReset, angularReset, linearReset, ring, route, stepIndex])
 
   /**

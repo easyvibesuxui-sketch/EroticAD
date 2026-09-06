@@ -466,6 +466,46 @@ export const SECTIONS = withInjected([
      * at the tongue and runs left, the way the head goes.
      */
     action: '/media/sections/07b-action.mp4',
+    /*
+     * The covered twin is six seconds where the bare cut is three, and it is
+     * plainly two movements rather than one long one: she laps at the stream,
+     * and then she comes up off the fountain. Frame 72 is where the tongue goes
+     * back in and the head starts to lift, so that is where the film is cut and
+     * where the hand is handed on.
+     *
+     * The two halves want different shapes, which is the whole reason for
+     * splitting them. Lapping drifts up — the tongue goes from u 0.67, v 0.65
+     * to u 0.62, v 0.39, five times as far vertically as sideways — so the
+     * route's axis stands up and its teeth swing across it. Coming up is the
+     * other way round: from u 0.62, v 0.39 to u 0.45, v 0.31, so that half is a
+     * straight pull to the left. One gesture would have had to average them,
+     * and would have described neither.
+     */
+    safe: {
+      approach: '/media/sections/07a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/07b-action-covered.mp4',
+          track: 'zigzag',
+          u: 0.67,
+          v: 0.65,
+          dir: 'up',
+          span: 0.38,
+          amplitude: 0.055,
+          teeth: 4,
+          label: 'Follow her tongue',
+        },
+        {
+          src: '/media/sections/07c-action-covered.mp4',
+          track: 'line',
+          u: 0.62,
+          v: 0.39,
+          dir: 'left',
+          travel: 0.5,
+          label: 'Let her up',
+        },
+      ],
+    },
     actionLabel: 'Follow her tongue',
     track: 'zigzag',
     u: 0.75,
@@ -491,13 +531,20 @@ export const FILM_SECONDS = SECTIONS.length * SECTION_SECONDS
  */
 export function resolveSections(mode = 'bare') {
   if (mode !== 'covered') return SECTIONS
-  return SECTIONS.map((s) => ({
-    ...s,
-    approach: s.safe?.approach ?? null,
-    steps: s.steps.map((step, n) => {
-      const twin = s.safe?.steps?.[n]
-      // No twin for this action: no source at all, and the stand-in serves.
-      return twin ? { ...step, ...twin } : { ...step, src: null }
-    }),
-  }))
+  return SECTIONS.map((s) => {
+    const twins = s.safe?.steps ?? []
+    /*
+     * The twin is its own sequence, not a substitution into the bare one.
+     * Section seven's covered cut is six seconds and two actions — a zigzag
+     * while she drinks, then a straight pull as she comes up — where the bare
+     * cut is a single zigzag. So the shape of the list comes from the twin
+     * wherever there is one, and the bare step is only the carrier of what the
+     * twin does not bother to say.
+     */
+    const steps = twins.length
+      ? twins.map((twin, n) => ({ ...(s.steps[n] ?? s.steps[0]), ...twin, n }))
+      : // No twin for this section: no source at all, and the stand-in serves.
+        s.steps.map((step) => ({ ...step, src: null }))
+    return { ...s, approach: s.safe?.approach ?? null, steps }
+  })
 }

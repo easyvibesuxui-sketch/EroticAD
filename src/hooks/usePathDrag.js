@@ -51,14 +51,25 @@ export function usePathDrag({
   const pathRef = useRef(path)
   pathRef.current = path
 
-  const reset = useCallback(() => {
-    progressRef.current = 0
-    targetRef.current = 0
-    draggingRef.current = false
-    committedRef.current = false
-    setDragging(false)
-    setCommitted(false)
-  }, [progressRef])
+  /**
+   * Put the control somewhere, usually the start.
+   *
+   * `to` is not always 0: a section of more than one clip that is wound back
+   * past a cut hands the film to the clip before, *fully wound*, so the hand
+   * carries on backwards through it instead of hitting a wall at a join it
+   * never saw going forward.
+   */
+  const reset = useCallback(
+    (to = 0) => {
+      progressRef.current = to
+      targetRef.current = to
+      draggingRef.current = false
+      committedRef.current = to >= COMMIT_THRESHOLD
+      setDragging(false)
+      setCommitted(to >= COMMIT_THRESHOLD)
+    },
+    [progressRef],
+  )
 
   /** Crossing the threshold either way is what marks the piece undone. */
   const mark = useCallback(
