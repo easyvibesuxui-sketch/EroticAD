@@ -271,6 +271,35 @@ export const SECTIONS = withInjected([
      * screen when a portrait phone crops the frame to its middle.
      */
     action: '/media/sections/03b-action.mp4',
+    /*
+     * The covered twin is not this shot with more fabric in it — it is a
+     * different gesture. Here she is already in the maillot and a single finger
+     * comes down the front of it, so the guide turns through ninety degrees:
+     * measured off the clip, the fingertip starts at u 0.48, v 0.42 and ends at
+     * u 0.63, v 0.76. Down is the movement; the drift right is the same bargain
+     * every straight pull on this site makes, and the smaller of the two.
+     *
+     * `travel` is long — longer than the finger's own course — for the same
+     * reason section six's is: it is how long the gesture takes, not how far
+     * the finger goes, and a phone measures it against a 390px side. At half
+     * the shorter side the guide ended mid-card and hung its instruction
+     * between the caption and the note, unreadable over both. On the desktop it
+     * is clamped to the room below v 0.42 anyway, which is the behaviour
+     * `useMarkTravel` is for.
+     */
+    safe: {
+      approach: '/media/sections/03a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/03b-action-covered.mp4',
+          u: 0.49,
+          v: 0.42,
+          dir: 'down',
+          travel: 0.95,
+          label: 'Draw it down',
+        },
+      ],
+    },
     actionLabel: 'Open her',
     u: 0.6,
     v: 0.42,
