@@ -44,6 +44,19 @@ const CHOICES = [
   },
 ]
 
+function Label({ busy, choice, above }) {
+  return (
+    <span
+      className={`absolute left-1/2 w-max -translate-x-1/2 text-center font-sans text-[0.62rem] font-light uppercase tracking-widest2 text-void/70 transition-colors duration-500 ease-silk group-hover:text-void group-focus-visible:text-void ${
+        above ? '-top-9' : '-bottom-9'
+      }`}
+    >
+      {busy ? 'Warming the glass' : choice.label}
+      {choice.adult && <span className="ml-2 text-gold-200">18+</span>}
+    </span>
+  )
+}
+
 export default function AgeGate({ onEnter, booting }) {
   const [shown, setShown] = useState(false)
   const [chosen, setChosen] = useState(null)
@@ -90,19 +103,27 @@ export default function AgeGate({ onEnter, booting }) {
                 i === 1 ? '-mt-[26vw] sm:mt-0 sm:-ml-[13vw]' : ''
               } ${booting && !busy ? 'opacity-40' : ''}`}
             >
+              {/*
+               * The label hangs outside its circle — above the first, below the
+               * second — so it reads against the flat ground rather than against
+               * whatever happens to be in the picture, where it was barely
+               * there. Hung rather than stacked, so both circles stay on the
+               * same line as each other.
+               */}
+              <Label busy={busy} choice={c} above={i === 0} />
+              <span className="absolute inset-0 rounded-full">
+              {/*
+               * Monochrome until it is wanted. The stills are colour files and
+               * the grey is CSS, so hovering lifts it off rather than swapping
+               * to a second image — one file, and the change is a transition
+               * rather than a load.
+               */}
               <span
-                className="absolute inset-0 rounded-full bg-cover bg-center mix-blend-multiply transition-all duration-700 ease-silk group-hover:brightness-125 group-focus-visible:brightness-125"
+                className="absolute inset-0 rounded-full bg-cover bg-center mix-blend-multiply transition-all duration-700 ease-silk [filter:grayscale(1)_brightness(0.92)] group-hover:[filter:grayscale(0)_brightness(1.18)] group-focus-visible:[filter:grayscale(0)_brightness(1.18)]"
                 style={{ backgroundImage: `url(${poster(c.mode, c.poster)})` }}
               />
-              {/* the hairline that says this is a thing you can press */}
-              <span className="absolute inset-0 rounded-full border border-void/0 transition-colors duration-700 ease-silk group-hover:border-void/30 group-focus-visible:border-void/30" />
-              <span
-                className={`absolute inset-x-0 ${
-                  i === 1 ? 'bottom-[12%]' : 'top-[12%]'
-                } px-6 text-center font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-blush/0 transition-colors duration-500 ease-silk group-hover:text-blush/90 group-focus-visible:text-blush/90`}
-              >
-                {busy ? 'Warming the glass' : c.label}
-                {c.adult && <span className="ml-2 opacity-60">18+</span>}
+                {/* the hairline that says this is a thing you can press */}
+                <span className="absolute inset-0 rounded-full border border-void/0 transition-colors duration-700 ease-silk group-hover:border-void/35 group-focus-visible:border-void/35" />
               </span>
             </button>
           )
