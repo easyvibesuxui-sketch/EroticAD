@@ -29,6 +29,15 @@ export const BRAND = {
    * and it becomes an ordinary POST — nothing else has to change.
    */
   newsletter: '',
+  /*
+   * Who the work belongs to.
+   *
+   * The house is a fiction and its copyright line says so by naming a house
+   * that does not exist. This one names the person who actually made the
+   * thing, and the colophon leaves the clause out entirely while it is empty
+   * rather than printing a hole.
+   */
+  author: '',
 }
 
 /**

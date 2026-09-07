@@ -202,6 +202,24 @@ export default function Footer({ style }) {
           <span>© {YEAR} {BRAND.house}</span>
         </div>
       </div>
+
+      {/*
+       * The colophon.
+       *
+       * Everything above this line is written the way a shop writes: prices,
+       * editions, a bag to add to. None of it is real, and a visitor has no way
+       * of telling that from the inside — so it is said here, plainly, in the
+       * one place on a site where a person looks for who made a thing and what
+       * it actually is. Small, because it is not a disclaimer being got out of
+       * the way; it is the credits.
+       */}
+      <p className="relative mx-auto mt-5 w-full max-w-5xl font-sans text-[0.55rem] font-light leading-loose tracking-[0.14em] text-smoke/40 sm:mt-6">
+        Concept inspired by the interactive music project{' '}
+        <span className="italic">Rester avec Toi</span>. Maison Ondine is a
+        fiction — the house, the pieces and the prices are invented, and nothing
+        here is for sale. Film and music generated with AI.
+        {BRAND.author ? ` © ${YEAR} ${BRAND.author}. All rights reserved.` : ''}
+      </p>
     </footer>
   )
 }
