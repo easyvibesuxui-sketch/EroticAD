@@ -50,6 +50,11 @@ const CHOICES = [
 /**
  * The label is a sibling of its button, not a child of it.
  *
+ * It is written in blush rather than the near-black the rest of this site
+ * uses for type. On the crimson ground that black came out at about two to
+ * one — technically present, and unreadable at this size and weight, which is
+ * no use for the only two words that say what each shape means.
+ *
  * It has to be: the button is clipped to the rhombus, and `clip-path` takes the
  * text with it — hung above or below, a label inside would simply be cut away.
  * It follows the button through `peer-hover` instead of `group-hover`, which
@@ -59,7 +64,7 @@ const CHOICES = [
 function Label({ busy, choice, above }) {
   return (
     <span
-      className={`pointer-events-none absolute left-1/2 w-max -translate-x-1/2 text-center font-sans text-[0.62rem] font-light uppercase tracking-widest2 text-void/70 transition-colors duration-500 ease-silk peer-hover:text-void peer-focus-visible:text-void ${
+      className={`pointer-events-none absolute left-1/2 w-max -translate-x-1/2 text-center font-sans text-[0.62rem] font-light uppercase tracking-widest2 text-blush/85 transition-colors duration-500 ease-silk peer-hover:text-crimson-50 peer-focus-visible:text-crimson-50 ${
         above ? '-top-9' : '-bottom-9'
       }`}
     >
@@ -89,7 +94,7 @@ export default function AgeGate({ onEnter, booting }) {
       <div className="pointer-events-none absolute inset-0 grain opacity-[0.10]" />
 
       <div className="materialize relative" data-visible={shown}>
-        <Wordmark className="justify-center text-void/70" size={16} />
+        <Wordmark className="justify-center text-blush/70" size={16} />
       </div>
 
       {/*
@@ -130,7 +135,7 @@ export default function AgeGate({ onEnter, booting }) {
                 disabled={booting}
                 onClick={() => choose(c.mode)}
                 aria-label={`${c.label}. ${c.note}${c.adult ? '. Over 18 only' : ''}.`}
-                className="peer group absolute inset-0 block transition-transform duration-700 ease-silk focus-visible:outline focus-visible:outline-1 focus-visible:outline-void/60 disabled:cursor-wait"
+                className="peer group absolute inset-0 block transition-transform duration-700 ease-silk focus-visible:outline focus-visible:outline-1 focus-visible:outline-gold-200/70 disabled:cursor-wait"
                 style={{ clipPath: RHOMBUS }}
               >
                 {/*
@@ -143,29 +148,35 @@ export default function AgeGate({ onEnter, booting }) {
                   className="absolute inset-0 bg-cover bg-center mix-blend-multiply transition-all duration-700 ease-silk [filter:grayscale(1)_brightness(0.92)] group-hover:[filter:grayscale(0)_brightness(1.18)] group-focus-visible:[filter:grayscale(0)_brightness(1.18)]"
                   style={{ backgroundImage: `url(${poster(c.mode, c.poster)})` }}
                 />
-                {/*
-                 * The hairline that says this is a thing you can press. A
-                 * border cannot draw this edge — `clip-path` cuts the border
-                 * box along with everything else, so the two diagonals would
-                 * simply be shaved off. The outline is the shape itself,
-                 * stroked, with the stroke held at a hairline whatever the
-                 * window does to the box.
-                 */}
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  className="absolute inset-0 h-full w-full text-void/0 transition-colors duration-700 ease-silk group-hover:text-void/35 group-focus-visible:text-void/35"
-                >
-                  <polygon
-                    points="50,0 100,50 50,100 0,50"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
               </button>
+              {/*
+               * The frame that comes up under the hand.
+               *
+               * It stands *outside* the button, for two reasons. `clip-path`
+               * cuts everything in the button to the rhombus, so an edge drawn
+               * inside would be sliced in half lengthwise and an edge drawn
+               * outside would not exist at all. And a frame wants to be around
+               * the picture rather than on it: held off by ten pixels, it
+               * reads as a mount rather than as a stroke on the photograph.
+               *
+               * Gold because that is this site's word for "you can act on
+               * this", and because it is the one colour that carries against
+               * both the crimson ground and the dark of the stills.
+               */}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="pointer-events-none absolute -inset-[10px] opacity-0 transition-opacity duration-500 ease-silk peer-hover:opacity-100 peer-focus-visible:opacity-100"
+              >
+                <polygon
+                  points="50,0 100,50 50,100 0,50"
+                  fill="none"
+                  stroke="#f2dcae"
+                  strokeWidth="1.5"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
               {/*
                * The label hangs outside its shape — above the first, below the
                * second — so it reads against the flat ground rather than
@@ -184,14 +195,14 @@ export default function AgeGate({ onEnter, booting }) {
       </div>
 
       <div className="materialize relative max-w-md text-center" data-visible={shown}>
-        <p className="font-sans text-[0.62rem] font-light leading-relaxed tracking-[0.16em] text-void/70">
+        <p className="font-sans text-[0.62rem] font-light leading-relaxed tracking-[0.16em] text-blush/75">
           {BRAND.season}. {Spell(SECTIONS.length)} pieces. None of them will come off
           on their own.
         </p>
         <a
           data-interactive
           href="https://www.google.com"
-          className="mt-4 inline-block font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-void/45 transition-colors duration-500 hover:text-void/75"
+          className="mt-4 inline-block font-sans text-[0.6rem] font-light uppercase tracking-widest2 text-blush/55 transition-colors duration-500 hover:text-blush/90"
         >
           Neither — take me out
         </a>
