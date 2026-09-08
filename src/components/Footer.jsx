@@ -218,7 +218,25 @@ export default function Footer({ style }) {
         <span className="italic">Rester avec Toi</span>. Maison Ondine is a
         fiction — the house, the pieces and the prices are invented, and nothing
         here is for sale. Film and music generated with AI.
-        {BRAND.author ? ` © ${YEAR} ${BRAND.author}. All rights reserved.` : ''}
+        {BRAND.author && (
+          <>
+            {' '}© {YEAR}{' '}
+            {BRAND.authorUrl ? (
+              <a
+                href={BRAND.authorUrl}
+                target="_blank"
+                rel="noreferrer"
+                data-interactive
+                className="underline decoration-smoke/25 underline-offset-4 transition-colors duration-500 ease-silk hover:text-blush/80 hover:decoration-blush/50"
+              >
+                {BRAND.author}
+              </a>
+            ) : (
+              BRAND.author
+            )}
+            . All rights reserved.
+          </>
+        )}
       </p>
     </footer>
   )
