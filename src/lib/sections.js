@@ -217,6 +217,36 @@ export const SECTIONS = withInjected([
      * frame: the near hand sits at u 0.34, the far one at u 0.47, both at
      * about v 0.77.
      */
+    /*
+     * The covered twin is one action where the bare cut is two, and a pull
+     * where the bare cut is a turn: she is in the bra already and a single
+     * hand takes the strap and draws it down off the shoulder. There is no
+     * roll here and so no circle — a ring drawn over a straight slide would be
+     * describing a movement the film does not make.
+     *
+     * It is a small movement, and measuring it needed the frames differenced
+     * rather than eyeballed: against the first frame, the last one changes
+     * most in a column at u 0.59 running from v 0.50 to v 0.72. That column is
+     * the strap and the hand on it, and it says the axis is down. The mark
+     * stands on the hand at u 0.57, v 0.60; from there the window has only two
+     * tenths of its height left below, so the travel is clamped rather than
+     * granted, which for three and a half seconds of film is a firm, short
+     * pull.
+     */
+    safe: {
+      approach: '/media/sections/02a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/02b-action-covered.mp4',
+          track: 'line',
+          u: 0.57,
+          v: 0.6,
+          dir: 'down',
+          travel: 0.5,
+          label: 'Slip it down',
+        },
+      ],
+    },
     u: 0.4,
     v: 0.74,
     steps: [
