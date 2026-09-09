@@ -364,6 +364,37 @@ export const SECTIONS = withInjected([
      * which is the one column a portrait phone is guaranteed to show.
      */
     action: '/media/sections/04b-action.mp4',
+    /*
+     * The covered twin is the same movement over knickers: the wrap is pushed
+     * off the hips from behind and leaves the frame at the bottom, and she is
+     * dressed underneath. So this is the one twin so far that keeps its
+     * section's gesture rather than replacing it — down, and off.
+     *
+     * The framing is closer, so the numbers move even though the shape does
+     * not. Measured off the action clip, the wrap's top edge crosses the hips
+     * at v 0.54 in the first frame rather than the bare cut's 0.63, and by the
+     * last frame there is no wrap left in the picture. The mark sits a little
+     * above the edge at v 0.52, for the same reason it does in the bare cut:
+     * the edge is a hand's width of cloth rather than a point, and the couple
+     * of hundredths buy travel before the bottom of the window takes it.
+     *
+     * u 0.5 again — dead centre is the one column a portrait phone is
+     * guaranteed to show.
+     */
+    safe: {
+      approach: '/media/sections/04a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/04b-action-covered.mp4',
+          track: 'line',
+          u: 0.5,
+          v: 0.52,
+          dir: 'down',
+          travel: 0.5,
+          label: 'Push it down',
+        },
+      ],
+    },
     actionLabel: 'Push it down',
     u: 0.5,
     v: 0.6,
