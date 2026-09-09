@@ -438,6 +438,40 @@ export const SECTIONS = withInjected([
      * does rather than short of it.
      */
     action: '/media/sections/05b-action.mp4',
+    /*
+     * The covered twin is the culotte's opposite: the knickers stay on and the
+     * robe is lifted off them instead, so the mark goes up where the bare cut
+     * goes down.
+     *
+     * It arrives in portrait too, 720x1280 like the bare pair — and unlike the
+     * bare pair it needs no crop at all, which is worth saying plainly because
+     * the crop above was such a production. A landscape window shows the band
+     * v 0.324 to 0.676 of a portrait frame, and this action lives inside it:
+     * measured, the robe's opening runs from u 0.64, v 0.63 in the first frame
+     * up to v 0.31 in the last, where the bare cut's ran from 0.66 to 0.88 and
+     * left the band a third of the way through. Cropping would have cost the
+     * whole width on a phone — which shows the frame entire — to fix a problem
+     * this pair does not have.
+     *
+     * The mark sits at u 0.62, a little inboard of the opening so a narrow
+     * phone keeps it, and at v 0.60, just under the edge at the start. Its
+     * travel finishes around v 0.41 rather than the 0.31 the fabric reaches:
+     * the guide says how long the gesture is, not how far the cloth goes.
+     */
+    safe: {
+      approach: '/media/sections/05a-approach-covered.mp4',
+      steps: [
+        {
+          src: '/media/sections/05b-action-covered.mp4',
+          track: 'line',
+          u: 0.62,
+          v: 0.6,
+          dir: 'up',
+          travel: 0.55,
+          label: 'Lift it away',
+        },
+      ],
+    },
     actionLabel: 'Take them down',
     u: 0.36,
     v: 0.11,
