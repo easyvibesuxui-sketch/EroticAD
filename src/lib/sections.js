@@ -443,20 +443,27 @@ export const SECTIONS = withInjected([
      * robe is lifted off them instead, so the mark goes up where the bare cut
      * goes down.
      *
-     * It arrives in portrait too, 720x1280 like the bare pair — and unlike the
-     * bare pair it needs no crop at all, which is worth saying plainly because
-     * the crop above was such a production. A landscape window shows the band
-     * v 0.324 to 0.676 of a portrait frame, and this action lives inside it:
-     * measured, the robe's opening runs from u 0.64, v 0.63 in the first frame
-     * up to v 0.31 in the last, where the bare cut's ran from 0.66 to 0.88 and
-     * left the band a third of the way through. Cropping would have cost the
-     * whole width on a phone — which shows the frame entire — to fix a problem
-     * this pair does not have.
+     * It arrives in portrait, 720x1280 like the bare pair, and it is given its
+     * 16:9 frame rather than cut down to one. Both were tried. Cropping loses
+     * the sides of a shot that has nothing to spare, and leaving it portrait
+     * was worse still: cover-fit blows 720 pixels of width up to fill a 1440
+     * window, and this clip's camera pushes in hard by its end, so the last
+     * second was a wall of skin with the culotte — the thing the section is
+     * selling — half outside the frame.
      *
-     * The mark sits at u 0.62, a little inboard of the opening so a narrow
-     * phone keeps it, and at v 0.60, just under the edge at the start. Its
-     * travel finishes around v 0.41 rather than the 0.31 the fabric reaches:
-     * the guide says how long the gesture is, not how far the cloth goes.
+     * So the picture is set whole inside a 1280x720 frame, 405 pixels of it,
+     * and the space either side is a blurred, darkened copy of the same frame.
+     * The subject is shown about two and a half times smaller than cover-fit
+     * managed and entire rather than in a band, and the surround reads as
+     * depth rather than as bars. A phone, which shows u 0.37 to 0.63 of a 16:9
+     * film, gets almost exactly the picture and almost none of the wash.
+     *
+     * That reframing moves the coordinates with it: a source point (u, v)
+     * lands at u 0.342 + u x 0.316, v unchanged. Measured on the source, the
+     * robe's opening runs from u 0.64, v 0.63 up to v 0.31, so in the framed
+     * clip it starts at u 0.54. The mark sits there, just under the edge at
+     * v 0.62. Its travel finishes short of where the cloth ends up: the guide
+     * says how long the gesture is, not how far the cloth goes.
      */
     safe: {
       approach: '/media/sections/05a-approach-covered.mp4',
@@ -464,8 +471,8 @@ export const SECTIONS = withInjected([
         {
           src: '/media/sections/05b-action-covered.mp4',
           track: 'line',
-          u: 0.62,
-          v: 0.6,
+          u: 0.54,
+          v: 0.62,
           dir: 'up',
           travel: 0.55,
           label: 'Lift it away',
