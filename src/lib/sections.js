@@ -443,27 +443,17 @@ export const SECTIONS = withInjected([
      * robe is lifted off them instead, so the mark goes up where the bare cut
      * goes down.
      *
-     * It arrives in portrait, 720x1280 like the bare pair, and it is given its
-     * 16:9 frame rather than cut down to one. Both were tried. Cropping loses
-     * the sides of a shot that has nothing to spare, and leaving it portrait
-     * was worse still: cover-fit blows 720 pixels of width up to fill a 1440
-     * window, and this clip's camera pushes in hard by its end, so the last
-     * second was a wall of skin with the culotte — the thing the section is
-     * selling — half outside the frame.
+     * Unlike the bare pair it arrives in landscape, so it needs none of that
+     * cut's crop and none of the framing the portrait attempt at this twin
+     * needed either — the picture is simply the picture.
      *
-     * So the picture is set whole inside a 1280x720 frame, 405 pixels of it,
-     * and the space either side is a blurred, darkened copy of the same frame.
-     * The subject is shown about two and a half times smaller than cover-fit
-     * managed and entire rather than in a band, and the surround reads as
-     * depth rather than as bars. A phone, which shows u 0.37 to 0.63 of a 16:9
-     * film, gets almost exactly the picture and almost none of the wash.
-     *
-     * That reframing moves the coordinates with it: a source point (u, v)
-     * lands at u 0.342 + u x 0.316, v unchanged. Measured on the source, the
-     * robe's opening runs from u 0.64, v 0.63 up to v 0.31, so in the framed
-     * clip it starts at u 0.54. The mark sits there, just under the edge at
-     * v 0.62. Its travel finishes short of where the cloth ends up: the guide
-     * says how long the gesture is, not how far the cloth goes.
+     * Both hands take the hem at the back and carry it up to the waist.
+     * Measured off the action clip, the hem's middle runs from u 0.55, v 0.75
+     * in the first frame to u 0.47, v 0.29 in the last: nearly half the frame's
+     * height, and the second-longest rise on the site. The mark sits between
+     * the hands at u 0.53, v 0.73, and its travel is clamped by the room above
+     * rather than granted, which for four and three quarter seconds of film is
+     * about right.
      */
     safe: {
       approach: '/media/sections/05a-approach-covered.mp4',
@@ -471,10 +461,10 @@ export const SECTIONS = withInjected([
         {
           src: '/media/sections/05b-action-covered.mp4',
           track: 'line',
-          u: 0.54,
-          v: 0.62,
+          u: 0.53,
+          v: 0.73,
           dir: 'up',
-          travel: 0.55,
+          travel: 0.6,
           label: 'Lift it away',
         },
       ],
