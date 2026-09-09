@@ -27,15 +27,20 @@ const MIN_TRAVEL = 150
 const EDGE_MARGIN = 56
 
 /**
- * The instruction hangs below the mark, so a downward pull needs more room at
- * the bottom than the mark itself takes.
+ * The instruction sits at the far end of the gesture, so a vertical pull needs
+ * more room at that end than the mark itself takes.
  *
- * Measured: section six on a 1440x900 window ended its travel at y 844 — inside
- * the 56px margin, correctly — and then wrote "ease them down" at 909, thirty
- * pixels past the bottom of the window, where nobody ever read it. The margin
- * was reserving room for the wrong thing. Anything that hangs off the mark has
- * to be in the measurement, or the clamp is only pretending to keep it on
+ * Measured twice, once at each edge. Section six's bare cut ended its travel at
+ * y 844 on a 1440x900 window — inside the 56px margin, correctly — and then
+ * wrote "ease them down" at 909, thirty pixels past the bottom, where nobody
+ * ever read it. Its covered cut pulls the other way and did the mirror image:
+ * the words landed at y 13, tucked under the header. The margin was reserving
+ * room for the wrong thing in both directions. Anything that hangs off the mark
+ * has to be in the measurement, or the clamp is only pretending to keep it on
  * screen.
+ *
+ * A sideways pull needs none of this: the instruction rides under the middle of
+ * the mark rather than past its end, so the mark's own margin already covers it.
  */
 const INSTRUCTION_ROOM = 96
 
@@ -49,7 +54,7 @@ export function useMarkTravel(step, aspectRef) {
     const wanted = (step.travel ?? 0.5) * Math.min(vw, vh)
 
     const p = filmToScreen(step.u, step.v, vw, vh, aspectRef.current || 16 / 9)
-    const margin = EDGE_MARGIN + (dy > 0 ? INSTRUCTION_ROOM : 0)
+    const margin = EDGE_MARGIN + (dy !== 0 ? INSTRUCTION_ROOM : 0)
     const room = (dx > 0 ? vw - p.x : dx < 0 ? p.x : dy > 0 ? vh - p.y : p.y) - margin
 
     return Math.max(MIN_TRAVEL, Math.min(wanted, room))

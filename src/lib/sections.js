@@ -469,27 +469,32 @@ export const SECTIONS = withInjected([
      */
     action: '/media/sections/06b-action.mp4',
     /*
-     * The covered twin runs the gesture the other way: she is in the lace dress
-     * and it is drawn *up*, so this is the only mark on the site that travels
-     * against gravity.
+     * The covered twin runs the gesture the other way: the skirt is drawn *up*
+     * over the lace, so this is the only mark on the site that travels against
+     * gravity.
      *
      * It follows the garment for the same reason the bare cut does, and here
-     * there is no alternative at all — the two hands sit at u 0.69 and u 0.18,
-     * and a portrait phone crops the film to u [0.37, 0.63], so a mark on
-     * either hand would be shoved to the edge by the clamp and stop meaning
-     * anything. The hem between them is on screen at every window shape:
-     * measured, its middle lies at u 0.44, v 0.72 in the first frame and rises
-     * to v 0.50 in the last.
+     * there is no alternative at all — the two hands are out at the edges of
+     * the skirt, and a portrait phone crops the film to u [0.37, 0.63], so a
+     * mark on either would be shoved to the edge by the clamp and stop meaning
+     * anything. The waistband between them is on screen at every window shape:
+     * measured, its middle lies at u 0.47, v 0.72 in the first frame and rises
+     * to u 0.45, v 0.33 in the last.
+     *
+     * That rise is four tenths of the frame where the clip this replaced
+     * managed two, so the travel goes up with it. At 0.6 of the shorter side
+     * it is still inside the room above the mark on both a laptop and a phone,
+     * so it is granted rather than clamped.
      */
     safe: {
       approach: '/media/sections/06a-approach-covered.mp4',
       steps: [
         {
           src: '/media/sections/06b-action-covered.mp4',
-          u: 0.44,
+          u: 0.46,
           v: 0.72,
           dir: 'up',
-          travel: 0.55,
+          travel: 0.6,
           label: 'Draw it up',
         },
       ],
